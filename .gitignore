@@ -1,0 +1,41 @@
+# ========================
+# Common (client + server)
+# ========================
+node_modules/
+*.log
+logs/
+coverage/
+.cache/
+.tmp/
+temp/
+
+# ========================
+# Environment variables
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Build folders
+# ========================
+dist/
+build/
+
+# ========================
+# Vite / React
+# ========================
+client/.vite/
+
+# ========================
+# Server uploads (if using multer later)
+# ========================
+server/uploads/
+
+# ========================
+# OS / Editor files
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
