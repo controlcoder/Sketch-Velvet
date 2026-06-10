@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 
@@ -11,6 +10,7 @@ import type {
   CircleElement,
   LineElement,
 } from "./types";
+import { useHistory } from "../../hooks/useHistory";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -31,6 +31,10 @@ export default function Canvas() {
     null,
   );
 
+  const { undo, redo, canUndo, canRedo, setElementsWithHistory } = useHistory(
+    setElements,
+  );
+
   const isPanning = useRef(false);
 
   const lastMouse = useRef({
@@ -47,36 +51,6 @@ export default function Canvas() {
     y: number;
     value: string;
   } | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      redraw();
-    };
-
-    resize();
-
-    window.addEventListener("resize", resize);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  useEffect(() => {
-    redraw();
-  }, [camera, elements, drawingElement]);
-
-  useLayoutEffect(() => {
-    if (!textEditor || !textAreaRef || !textAreaRef.current) return;
-
-    textAreaRef.current.focus();
-  }, [textEditor]);
 
   const redraw = () => {
     const canvas = canvasRef.current;
@@ -198,7 +172,7 @@ export default function Canvas() {
         stroke: strokeColor,
       };
 
-      setElements((el) => [...el, textElement]);
+      setElementsWithHistory((el) => [...el, textElement]);
       setTool("select");
 
       return null;
@@ -259,7 +233,7 @@ export default function Canvas() {
     isPanning.current = false;
 
     if (drawingElement) {
-      setElements((prev) => [...prev, drawingElement]);
+      setElementsWithHistory((prev) => [...prev, drawingElement]);
 
       setDrawingElement(null);
     }
@@ -269,6 +243,56 @@ export default function Canvas() {
     e.stopPropagation();
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLTextAreaElement) return; // don't fire while typing
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      redraw();
+    };
+
+    resize();
+
+    window.addEventListener("resize", resize);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  useEffect(() => {
+    redraw();
+  }, [camera, elements, drawingElement]);
+
+  useLayoutEffect(() => {
+    if (!textEditor || !textAreaRef || !textAreaRef.current) return;
+
+    textAreaRef.current.focus();
+  }, [textEditor]);
 
   return (
     <>
@@ -289,6 +313,13 @@ export default function Canvas() {
         <button onClick={() => setTool("arrow")}>Arrow</button>
 
         <button onClick={() => setTool("text")}>Text</button>
+
+        <button onClick={undo} disabled={!canUndo}>
+          Undo
+        </button>
+        <button onClick={redo} disabled={!canRedo}>
+          Redo
+        </button>
       </div>
 
       <input
