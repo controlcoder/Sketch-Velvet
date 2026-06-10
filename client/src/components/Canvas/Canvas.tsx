@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
@@ -23,7 +23,7 @@ export default function Canvas() {
 
   const [strokeColor, setStrokeColor] = useState("#000000");
 
-  const [tool, setTool] = useState<Tool>("text");
+  const [tool, setTool] = useState<Tool>("rectangle");
 
   const [elements, setElements] = useState<CanvasElement[]>([]);
 
@@ -39,6 +39,8 @@ export default function Canvas() {
   });
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  const isEditingText = useRef(false);
 
   const [textEditor, setTextEditor] = useState<{
     x: number;
@@ -70,13 +72,11 @@ export default function Canvas() {
     redraw();
   }, [camera, elements, drawingElement]);
 
-  // useLayoutEffect(() => {
-  //   if (!textEditor) return;
+  useLayoutEffect(() => {
+    if (!textEditor || !textAreaRef || !textAreaRef.current) return;
 
-  //   console.log("layout effect called");
-
-  //   textAreaRef.current?.focus();
-  // }, [textEditor]);
+    textAreaRef.current.focus();
+  }, [textEditor]);
 
   const redraw = () => {
     const canvas = canvasRef.current;
@@ -113,6 +113,11 @@ export default function Canvas() {
       return;
     }
 
+    if (isEditingText.current) {
+      isEditingText.current = false;
+      return;
+    }
+
     const { x, y } = getCanvasCoordinates(e);
 
     if (tool === "rectangle") {
@@ -132,15 +137,13 @@ export default function Canvas() {
     }
 
     if (tool === "text") {
-      const { x, y } = getCanvasCoordinates(e);
-
+      e.preventDefault();
+      isEditingText.current = true;
       setTextEditor({
         x,
         y,
         value: "",
       });
-
-      textAreaRef.current?.focus();
 
       return;
     }
@@ -176,32 +179,31 @@ export default function Canvas() {
     }
   };
 
-  const saveText = () => {
-    if (!textEditor) return;
+  const saveText = useCallback(() => {
+    isEditingText.current = false;
+    setTextEditor((prev) => {
+      if (!prev) return null;
 
-    const value = textEditor.value.trim();
+      const value = prev.value.trim();
 
-    if (!value) {
-      setTextEditor(null);
-      return;
-    }
+      if (!value) return null;
 
-    const textElement: CanvasElement = {
-      id: crypto.randomUUID(),
-      type: "text",
-      x: textEditor.x,
-      y: textEditor.y,
-      text: value,
-      fontSize: 20,
-      stroke: strokeColor,
-    };
+      const textElement: CanvasElement = {
+        id: crypto.randomUUID(),
+        type: "text",
+        x: prev.x,
+        y: prev.y,
+        text: value,
+        fontSize: 20,
+        stroke: strokeColor,
+      };
 
-    setElements((prev) => [...prev, textElement]);
+      setElements((el) => [...el, textElement]);
+      setTool("select");
 
-    setTextEditor(null);
-
-    setTool("select");
-  };
+      return null;
+    });
+  }, [strokeColor]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning.current) {
@@ -265,7 +267,6 @@ export default function Canvas() {
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
-    console.log(e.deltaY);
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
@@ -314,10 +315,10 @@ export default function Canvas() {
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              console.log("text saved");
               saveText();
             }
           }}
+          onBlur={saveText}
           style={{
             position: "fixed",
             left: textEditor.x * camera.zoom + camera.x,
@@ -328,9 +329,6 @@ export default function Canvas() {
             outline: "none",
             resize: "none",
             overflow: "hidden",
-            fontSize: "20px",
-            fontFamily: "Arial",
-            zIndex: 1000,
           }}
         />
       )}
