@@ -22,5 +22,5 @@ export function useCanvasSize(
     return () => {
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [canvasRef, redraw]);
 }

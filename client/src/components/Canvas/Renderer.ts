@@ -1,3 +1,5 @@
+// checks which type of element you are pointing to
+
 import { drawArrow } from "../../tools/drawArrow";
 import { drawCircle } from "../../tools/drawCircle";
 import { drawLine } from "../../tools/drawLine";
@@ -5,6 +7,7 @@ import { drawPencil } from "../../tools/drawPencil";
 import { drawRectangle } from "../../tools/drawRectangle";
 import { drawText } from "../../tools/drawText";
 import { drawGrid } from "./drawGrid";
+import { drawSelection } from "../../selection/drawSelection";
 import type { Camera, CanvasElement } from "./types";
 
 export function renderScene(
@@ -13,7 +16,9 @@ export function renderScene(
   height: number,
   elements: CanvasElement[],
   camera: Camera,
+  selectedElementId: string | null,
 ) {
+
   ctx.clearRect(0, 0, width, height);
 
   ctx.save();
@@ -27,26 +32,44 @@ export function renderScene(
     switch (element.type) {
       case "rectangle":
         drawRectangle(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
 
       case "circle":
         drawCircle(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
 
       case "line":
         drawLine(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
 
       case "arrow":
         drawArrow(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
 
       case "pencil":
         drawPencil(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
 
       case "text":
         drawText(ctx, element);
+        if (element.id === selectedElementId) {
+          drawSelection(ctx, element);
+        }
         break;
     }
   });

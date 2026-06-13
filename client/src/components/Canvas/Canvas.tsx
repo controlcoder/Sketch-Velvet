@@ -23,6 +23,9 @@ import { Box, Button, TextField } from "@mui/material";
 
 import { toolbarConfig } from "../Toolbar/ToolbarConfig";
 import ToolButton from "../Toolbar/ToolButton";
+import { hitTest } from "../../selection/hitTest";
+import { getHandleAtPosition } from "../../utils/getHandleAtPosition";
+import { HANDLE_CURSORS } from "../../selection/cursors";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -35,7 +38,7 @@ export default function Canvas() {
 
   const [strokeColor, setStrokeColor] = useState("#000000");
 
-  const [tool, setTool] = useState<Tool>("rectangle");
+  const [tool, setTool] = useState<Tool>("select");
 
   const [elements, setElements] = useState<CanvasElement[]>([]);
 
@@ -63,6 +66,9 @@ export default function Canvas() {
     value: string;
   } | null>(null);
 
+  const [selectedElement, setSelectedElement] =
+    useState<CanvasElement | null>(null);
+
   const redraw = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -74,7 +80,14 @@ export default function Canvas() {
       ? [...elements, drawingElement]
       : elements;
 
-    renderScene(ctx, canvas.width, canvas.height, renderedElements, camera);
+    renderScene(
+      ctx,
+      canvas.width,
+      canvas.height,
+      renderedElements,
+      camera,
+      selectedElement?.id || null,
+    );
   };
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -104,6 +117,15 @@ export default function Canvas() {
     }
 
     const { x, y } = getCanvasCoordinates(e);
+
+    if (tool === "select") {
+      const selected = [...elements]
+        .reverse()
+        .find((element) => hitTest(element, x, y));
+      setSelectedElement(selected || null);
+
+      return;
+    }
 
     if (tool === "rectangle") {
       const rectangle: RectangleElement = {
@@ -191,19 +213,47 @@ export default function Canvas() {
   }, [strokeColor]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isPanning.current) {
-      const dx = e.clientX - lastMouse.current.x;
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
 
-      const dy = e.clientY - lastMouse.current.y;
+    if (isPanning.current) {
+      const dx = mouseX - lastMouse.current.x;
+
+      const dy = mouseY - lastMouse.current.y;
 
       setCamera((prev) => panCamera(prev, dx, dy));
 
       lastMouse.current = {
-        x: e.clientX,
-        y: e.clientY,
+        x: mouseX,
+        y: mouseY,
       };
 
       return;
+    }
+
+    if (tool === "select") {
+
+      if (selectedElement) {
+        const handle = getHandleAtPosition(
+          selectedElement,
+          mouseX,
+          mouseY,
+          camera,
+        );
+
+        if (handle) {
+          e.currentTarget.style.cursor = HANDLE_CURSORS[handle];
+        } else {
+          const isOverElement = hitTest(
+            selectedElement,
+            (mouseX - camera.x) / camera.zoom,
+            (mouseY - camera.y) / camera.zoom,
+          );
+          e.currentTarget.style.cursor = isOverElement ? "move" : "default";
+        }
+      } else {
+        e.currentTarget.style.cursor = "default";
+      }
     }
 
     if (!drawingElement) return;
@@ -260,8 +310,17 @@ export default function Canvas() {
   useCanvasSize(canvasRef, redraw);
 
   useEffect(() => {
-    redraw();
-  }, [camera, elements, drawingElement]);
+    let animationId: number;
+
+    const loop = () => {
+      redraw();
+      animationId = requestAnimationFrame(loop);
+    };
+
+    animationId = requestAnimationFrame(loop);
+
+    return () => cancelAnimationFrame(animationId);
+  }, [camera, elements, drawingElement, selectedElement]);
 
   useLayoutEffect(() => {
     if (!textEditor || !textAreaRef || !textAreaRef.current) return;
@@ -289,7 +348,11 @@ export default function Canvas() {
               key={item.key}
               title={item.title}
               active={tool === item.key}
-              onClick={() => setTool(item.key as Tool)}
+              onClick={() =>
+                setTool((prev) => {
+                  return prev === item.key ? "select" : item.key;
+                })
+              }
             >
               <Icon
                 sx={{
