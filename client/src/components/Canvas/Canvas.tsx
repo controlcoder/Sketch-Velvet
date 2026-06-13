@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 
@@ -11,6 +17,12 @@ import type {
   LineElement,
 } from "./types";
 import { useHistory } from "../../hooks/useHistory";
+import { useCanvasSize } from "../../hooks/useCanvaSize";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { Box, Button, TextField } from "@mui/material";
+
+import { toolbarConfig } from "../Toolbar/ToolbarConfig";
+import ToolButton from "../Toolbar/ToolButton";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -31,9 +43,8 @@ export default function Canvas() {
     null,
   );
 
-  const { undo, redo, canUndo, canRedo, setElementsWithHistory } = useHistory(
-    setElements,
-  );
+  const { undo, redo, canUndo, canRedo, setElementsWithHistory } =
+    useHistory(setElements);
 
   const isPanning = useRef(false);
 
@@ -244,45 +255,9 @@ export default function Canvas() {
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement) return; // don't fire while typing
+  useKeyboardShortcuts({ undo, redo });
 
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
-        e.preventDefault();
-        redo();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      redraw();
-    };
-
-    resize();
-
-    window.addEventListener("resize", resize);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
+  useCanvasSize(canvasRef, redraw);
 
   useEffect(() => {
     redraw();
@@ -296,37 +271,54 @@ export default function Canvas() {
 
   return (
     <>
-      <div
-        style={{
+      <Box
+        sx={{
           position: "fixed",
-          top: 20,
-          left: 20,
-          zIndex: 100,
+          top: 30,
+          left: "35%",
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
         }}
       >
-        <button onClick={() => setTool("rectangle")}>Rectangle</button>
+        {toolbarConfig.map((item) => {
+          const Icon = item.icon;
 
-        <button onClick={() => setTool("circle")}>Circle</button>
+          return (
+            <ToolButton
+              key={item.key}
+              title={item.title}
+              active={tool === item.key}
+              onClick={() => setTool(item.key as Tool)}
+            >
+              <Icon
+                sx={{
+                  color: "black",
+                  fontSize: 20,
+                }}
+              />
+            </ToolButton>
+          );
+        })}
 
-        <button onClick={() => setTool("line")}>Line</button>
-
-        <button onClick={() => setTool("arrow")}>Arrow</button>
-
-        <button onClick={() => setTool("text")}>Text</button>
-
-        <button onClick={undo} disabled={!canUndo}>
-          Undo
-        </button>
-        <button onClick={redo} disabled={!canRedo}>
-          Redo
-        </button>
-      </div>
-
-      <input
-        type="color"
-        value={strokeColor}
-        onChange={(e) => setStrokeColor(e.target.value)}
-      />
+        <TextField
+          type="color"
+          value={strokeColor}
+          sx={{
+            width: 40,
+            "& .MuiInputBase-root": {
+              height: 28,
+              padding: "0px 2px",
+            },
+            "& input": {
+              height: 28,
+              padding: 0,
+              cursor: "pointer",
+            },
+          }}
+          onChange={(e) => setStrokeColor(e.target.value)}
+        />
+      </Box>
 
       {textEditor && (
         <textarea
@@ -377,6 +369,44 @@ export default function Canvas() {
           display: "block",
         }}
       />
+      <Box
+        sx={{
+          position: "fixed",
+          left: 30,
+          bottom: 30,
+          display: "flex",
+          justifyContent: "space-between",
+          bgcolor: "#E0DFFF",
+          borderRadius: 2,
+          width: 120,
+          padding: "5px 10px",
+        }}
+      >
+        <Button
+          onClick={undo}
+          disabled={!canUndo}
+          sx={{
+            minWidth: 0,
+            padding: "1px 4px",
+            fontSize: "12px",
+            bgcolor: "white",
+          }}
+        >
+          Undo
+        </Button>
+        <Button
+          onClick={redo}
+          disabled={!canRedo}
+          sx={{
+            minWidth: 0,
+            padding: "1px 4px",
+            fontSize: "12px",
+            bgcolor: "white",
+          }}
+        >
+          Redo
+        </Button>
+      </Box>
     </>
   );
 }
