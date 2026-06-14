@@ -12,7 +12,7 @@ export function drawArrow(
     element.end.x - element.start.x
   );
 
-  const size = 12;
+  const size = 16;
 
   ctx.beginPath();
 

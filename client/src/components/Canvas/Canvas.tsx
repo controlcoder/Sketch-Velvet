@@ -70,6 +70,7 @@ export default function Canvas() {
       renderedElements,
       camera,
       selectedElement?.id || null,
+      drawingElement,
     );
   }, [camera, elements, drawingElement, selectedElement]);
 

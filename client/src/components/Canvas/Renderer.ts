@@ -17,8 +17,8 @@ export function renderScene(
   elements: CanvasElement[],
   camera: Camera,
   selectedElementId: string | null,
+  drawingElement: CanvasElement,
 ) {
-
   ctx.clearRect(0, 0, width, height);
 
   ctx.save();
@@ -52,7 +52,13 @@ export function renderScene(
         break;
 
       case "arrow":
-        drawArrow(ctx, element);
+        const isDrawing = drawingElement?.id === element.id;
+
+        if (isDrawing) {
+          drawLine(ctx, element);
+        } else {
+          drawArrow(ctx, element);
+        }
         if (element.id === selectedElementId) {
           drawSelection(ctx, element);
         }
