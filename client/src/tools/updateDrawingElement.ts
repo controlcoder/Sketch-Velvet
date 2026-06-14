@@ -21,6 +21,12 @@ export function updateDrawingElement(
         end: { x, y },
       };
 
+    case "pencil":
+      return {
+        ...element,
+        points: [...element.points, { x, y }],
+      };
+
     default:
       return element;
   }

@@ -44,7 +44,13 @@ export function createElement(
         end: { x, y },
         stroke,
       } satisfies LineElement;
-
+    case "pencil":
+      return {
+        id: crypto.randomUUID(),
+        type: "pencil",
+        points: [{ x, y }],
+        stroke,
+      };
     default:
       return null;
   }

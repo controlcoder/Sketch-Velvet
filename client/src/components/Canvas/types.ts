@@ -53,6 +53,7 @@ export interface LineElement extends BaseElement {
 export interface PencilElement extends BaseElement {
   type: "pencil";
   points: Point[];
+  stroke: string;
 }
 
 export interface TextElement extends BaseElement {

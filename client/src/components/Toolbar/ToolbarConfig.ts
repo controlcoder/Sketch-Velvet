@@ -4,6 +4,7 @@ import {
   ArrowForward,
   TextFieldsTwoTone,
   LineAxisSharp,
+  Edit,
 } from "@mui/icons-material";
 import type { Tool } from "../Canvas/types";
 import type { OverridableComponent } from "@mui/material/OverridableComponent";
@@ -42,5 +43,10 @@ import type { SvgIconTypeMap } from "@mui/material";
       key: "text",
       title: "Text",
       icon: TextFieldsTwoTone,
+    },
+    {
+      key: "pencil",
+      title: "Pencil",
+      icon: Edit,
     },
   ];

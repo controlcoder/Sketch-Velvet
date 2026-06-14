@@ -1,6 +1,12 @@
 // will find whether the cursor lies inside element or not
 
-import type { CanvasElement, CircleElement, LineElement, RectangleElement, TextElement } from "../components/Canvas/types";
+import type {
+  CanvasElement,
+  CircleElement,
+  LineElement,
+  RectangleElement,
+  TextElement,
+} from "../components/Canvas/types";
 
 export function hitTest(element: CanvasElement, x: number, y: number): boolean {
   switch (element.type) {
@@ -13,6 +19,8 @@ export function hitTest(element: CanvasElement, x: number, y: number): boolean {
       return hitTestLine(element, x, y);
     case "text":
       return hitTestText(element, x, y);
+    case "pencil":
+      return false;
     default:
       return false;
   }
