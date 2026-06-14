@@ -1,31 +1,17 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
-
-import type {
-  Camera,
-  CanvasElement,
-  Tool,
-  RectangleElement,
-  CircleElement,
-  LineElement,
-} from "./types";
+import type { Camera, CanvasElement, Tool } from "./types";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasSize } from "../../hooks/useCanvaSize";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { Box, Button, TextField } from "@mui/material";
-
-import { toolbarConfig } from "../Toolbar/ToolbarConfig";
-import ToolButton from "../Toolbar/ToolButton";
 import { hitTest } from "../../selection/hitTest";
-import { getHandleAtPosition } from "../../utils/getHandleAtPosition";
-import { HANDLE_CURSORS } from "../../selection/cursors";
+import TextEditor from "../TextEditor/TextEditor";
+import Toolbar from "../Toolbar/Toolbar";
+import HistoryPanel from "../HistoryPanel/HistoryPanel";
+import { createElement } from "../../tools/createElement";
+import { updateCursor } from "../../selection/updateCursor";
+import { updateDrawingElement } from "../../tools/updateDrawingElement";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -56,20 +42,17 @@ export default function Canvas() {
     y: 0,
   });
 
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-
-  const isEditingText = useRef(false);
-
   const [textEditor, setTextEditor] = useState<{
     x: number;
     y: number;
     value: string;
   } | null>(null);
 
-  const [selectedElement, setSelectedElement] =
-    useState<CanvasElement | null>(null);
+  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(
+    null,
+  );
 
-  const redraw = () => {
+  const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -88,7 +71,7 @@ export default function Canvas() {
       camera,
       selectedElement?.id || null,
     );
-  };
+  }, [camera, elements, drawingElement, selectedElement]);
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -111,8 +94,7 @@ export default function Canvas() {
       return;
     }
 
-    if (isEditingText.current) {
-      isEditingText.current = false;
+    if (textEditor) {
       return;
     }
 
@@ -127,25 +109,8 @@ export default function Canvas() {
       return;
     }
 
-    if (tool === "rectangle") {
-      const rectangle: RectangleElement = {
-        id: crypto.randomUUID(),
-        type: "rectangle",
-        x,
-        y,
-        width: 0,
-        height: 0,
-        stroke: strokeColor,
-      };
-
-      setDrawingElement(rectangle);
-
-      return;
-    }
-
     if (tool === "text") {
       e.preventDefault();
-      isEditingText.current = true;
       setTextEditor({
         x,
         y,
@@ -155,62 +120,13 @@ export default function Canvas() {
       return;
     }
 
-    if (tool === "circle") {
-      const circle: CircleElement = {
-        id: crypto.randomUUID(),
-        type: "circle",
-        x,
-        y,
-        width: 0,
-        height: 0,
-        stroke: strokeColor,
-      };
+    const element = createElement(tool, x, y, strokeColor);
 
-      setDrawingElement(circle);
-
-      return;
-    }
-
-    if (tool === "line" || tool === "arrow") {
-      const line: LineElement = {
-        id: crypto.randomUUID(),
-        type: tool,
-        start: { x, y },
-        end: { x, y },
-        stroke: strokeColor,
-      };
-
-      setDrawingElement(line);
-
+    if (element) {
+      setDrawingElement(element);
       return;
     }
   };
-
-  const saveText = useCallback(() => {
-    isEditingText.current = false;
-    setTextEditor((prev) => {
-      if (!prev) return null;
-
-      const value = prev.value.trim();
-
-      if (!value) return null;
-
-      const textElement: CanvasElement = {
-        id: crypto.randomUUID(),
-        type: "text",
-        x: prev.x,
-        y: prev.y,
-        text: value,
-        fontSize: 20,
-        stroke: strokeColor,
-      };
-
-      setElementsWithHistory((el) => [...el, textElement]);
-      setTool("select");
-
-      return null;
-    });
-  }, [strokeColor]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const mouseX = e.clientX;
@@ -231,63 +147,15 @@ export default function Canvas() {
       return;
     }
 
+    const { x, y } = getCanvasCoordinates(e);
+
     if (tool === "select") {
-
-      if (selectedElement) {
-        const handle = getHandleAtPosition(
-          selectedElement,
-          mouseX,
-          mouseY,
-          camera,
-        );
-
-        if (handle) {
-          e.currentTarget.style.cursor = HANDLE_CURSORS[handle];
-        } else {
-          const isOverElement = hitTest(
-            selectedElement,
-            (mouseX - camera.x) / camera.zoom,
-            (mouseY - camera.y) / camera.zoom,
-          );
-          e.currentTarget.style.cursor = isOverElement ? "move" : "default";
-        }
-      } else {
-        e.currentTarget.style.cursor = "default";
-      }
+      updateCursor(e.currentTarget, selectedElement, mouseX, mouseY, camera);
     }
 
     if (!drawingElement) return;
 
-    const { x, y } = getCanvasCoordinates(e);
-
-    if (drawingElement.type === "rectangle") {
-      setDrawingElement({
-        ...drawingElement,
-        width: x - drawingElement.x,
-        height: y - drawingElement.y,
-      });
-
-      return;
-    }
-
-    if (drawingElement.type === "circle") {
-      setDrawingElement({
-        ...drawingElement,
-        width: x - drawingElement.x,
-        height: y - drawingElement.y,
-      });
-
-      return;
-    }
-
-    if (drawingElement.type === "line" || drawingElement.type === "arrow") {
-      setDrawingElement({
-        ...drawingElement,
-        end: { x, y },
-      });
-
-      return;
-    }
+    setDrawingElement(updateDrawingElement(drawingElement, x, y));
   };
 
   const handleMouseUp = () => {
@@ -320,104 +188,36 @@ export default function Canvas() {
     animationId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(animationId);
-  }, [camera, elements, drawingElement, selectedElement]);
-
-  useLayoutEffect(() => {
-    if (!textEditor || !textAreaRef || !textAreaRef.current) return;
-
-    textAreaRef.current.focus();
-  }, [textEditor]);
+  }, [redraw]);
 
   return (
     <>
-      <Box
-        sx={{
-          position: "fixed",
-          top: 30,
-          left: "35%",
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
+      <Toolbar
+        tool={tool}
+        setTool={setTool}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+      />
+
+      <TextEditor
+        textEditor={textEditor}
+        setTextEditor={setTextEditor}
+        camera={camera}
+        strokeColor={strokeColor}
+        onSave={(text, x, y) => {
+          const textElement: CanvasElement = {
+            id: crypto.randomUUID(),
+            type: "text",
+            x,
+            y,
+            text,
+            fontSize: 20,
+            stroke: strokeColor,
+          };
+          setElementsWithHistory((prev) => [...prev, textElement]);
+          setTool("select");
         }}
-      >
-        {toolbarConfig.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <ToolButton
-              key={item.key}
-              title={item.title}
-              active={tool === item.key}
-              onClick={() =>
-                setTool((prev) => {
-                  return prev === item.key ? "select" : item.key;
-                })
-              }
-            >
-              <Icon
-                sx={{
-                  color: "black",
-                  fontSize: 20,
-                }}
-              />
-            </ToolButton>
-          );
-        })}
-
-        <TextField
-          type="color"
-          value={strokeColor}
-          sx={{
-            width: 40,
-            "& .MuiInputBase-root": {
-              height: 28,
-              padding: "0px 2px",
-            },
-            "& input": {
-              height: 28,
-              padding: 0,
-              cursor: "pointer",
-            },
-          }}
-          onChange={(e) => setStrokeColor(e.target.value)}
-        />
-      </Box>
-
-      {textEditor && (
-        <textarea
-          ref={textAreaRef}
-          autoFocus
-          value={textEditor.value}
-          onChange={(e) =>
-            setTextEditor((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    value: e.target.value,
-                  }
-                : null,
-            )
-          }
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              saveText();
-            }
-          }}
-          onBlur={saveText}
-          style={{
-            position: "fixed",
-            left: textEditor.x * camera.zoom + camera.x,
-            top: textEditor.y * camera.zoom + camera.y,
-            backgroundColor: "transparent",
-            color: strokeColor,
-            border: "none",
-            outline: "none",
-            resize: "none",
-            overflow: "hidden",
-          }}
-        />
-      )}
+      />
 
       <canvas
         ref={canvasRef}
@@ -431,45 +231,15 @@ export default function Canvas() {
           height: "100vh",
           display: "block",
         }}
+        onDoubleClick={() => setTool("select")}
       />
-      <Box
-        sx={{
-          position: "fixed",
-          left: 30,
-          bottom: 30,
-          display: "flex",
-          justifyContent: "space-between",
-          bgcolor: "#E0DFFF",
-          borderRadius: 2,
-          width: 120,
-          padding: "5px 10px",
-        }}
-      >
-        <Button
-          onClick={undo}
-          disabled={!canUndo}
-          sx={{
-            minWidth: 0,
-            padding: "1px 4px",
-            fontSize: "12px",
-            bgcolor: "white",
-          }}
-        >
-          Undo
-        </Button>
-        <Button
-          onClick={redo}
-          disabled={!canRedo}
-          sx={{
-            minWidth: 0,
-            padding: "1px 4px",
-            fontSize: "12px",
-            bgcolor: "white",
-          }}
-        >
-          Redo
-        </Button>
-      </Box>
+
+      <HistoryPanel
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+      />
     </>
   );
 }

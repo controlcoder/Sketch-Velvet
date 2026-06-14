@@ -1,5 +1,5 @@
 import type { Camera, CanvasElement } from "../components/Canvas/types";
-import { getHandlePositions } from "../selection/getHandlePositions";
+import { getHandlePositions } from "./getHandlePositions";
 import { getBounds } from "./getBounds";
 
 export function getHandleAtPosition(
@@ -14,9 +14,7 @@ export function getHandleAtPosition(
 
   const x = bounds.x - 8;
   const y = bounds.y - 8;
-
   const width = bounds.width + 16;
-
   const height = bounds.height + 16;
 
   const handles = getHandlePositions(x, y, width, height);

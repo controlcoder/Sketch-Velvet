@@ -1,5 +1,5 @@
 import type { CanvasElement } from "../components/Canvas/types";
-import { getBounds } from "../utils/getBounds";
+import { getBounds } from "./getBounds";
 import { getHandlePositions } from "./getHandlePositions";
 
 let dashOffset = 0;
