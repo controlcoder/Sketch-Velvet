@@ -15,6 +15,8 @@ import { updateDrawingElement } from "../../tools/updateDrawingElement";
 import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
 import { useRenderLoop } from "../../hooks/useRenderLoop";
 import { moveElement } from "../../selection/moveElement";
+import ZoomControls from "../ZoomControls/ZoomControls";
+import { useZoomControls } from "../../hooks/useZoomControls";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -43,6 +45,8 @@ export default function Canvas() {
     setElementsWithHistory,
     commitHistory,
   } = useHistory(setElements);
+
+  const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera);
 
   const isPanning = useRef(false);
 
@@ -255,7 +259,7 @@ export default function Canvas() {
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
-  useKeyboardShortcuts({ undo, redo });
+  useKeyboardShortcuts({ undo, redo, setZoomIn, setZoomOut, resetZoom });
 
   useCanvasSize(canvasRef);
 
@@ -303,6 +307,9 @@ export default function Canvas() {
           display: "block",
         }}
         onDoubleClick={() => setTool("select")}
+        onKeyDown={(e) => {
+          console.log("key pressed");
+        }}
       />
 
       <HistoryPanel
@@ -310,6 +317,13 @@ export default function Canvas() {
         redo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+      />
+
+      <ZoomControls
+        zoom={camera.zoom}
+        onZoomIn={setZoomIn}
+        onZoomOut={setZoomOut}
+        onReset={resetZoom}
       />
     </>
   );

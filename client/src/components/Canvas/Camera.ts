@@ -1,9 +1,10 @@
+import { MAX_ZOOM, MIN_ZOOM, ZOOM_STEP } from "../../constants/camera";
 import type { Camera, Point } from "./types";
 
 export function screenToWorld(
   screenX: number,
   screenY: number,
-  camera: Camera
+  camera: Camera,
 ): Point {
   return {
     x: (screenX - camera.x) / camera.zoom,
@@ -14,7 +15,7 @@ export function screenToWorld(
 export function worldToScreen(
   worldX: number,
   worldY: number,
-  camera: Camera
+  camera: Camera,
 ): Point {
   return {
     x: worldX * camera.zoom + camera.x,
@@ -25,7 +26,7 @@ export function worldToScreen(
 export function panCamera(
   camera: Camera,
   deltaX: number,
-  deltaY: number
+  deltaY: number,
 ): Camera {
   return {
     ...camera,
@@ -34,19 +35,19 @@ export function panCamera(
   };
 }
 
-export function zoomCamera(
-  camera: Camera,
-  delta: number
-): Camera {
-  const zoomFactor = 0.01;
-
+export function zoomCamera(camera: Camera, delta: number): Camera {
   const zoom =
-    delta < 0
-      ? camera.zoom * (1 + zoomFactor)
-      : camera.zoom * (1 - zoomFactor);
+    delta < 0 ? camera.zoom * (1 + ZOOM_STEP) : camera.zoom * (1 - ZOOM_STEP);
 
   return {
     ...camera,
-    zoom: Math.max(0.1, Math.min(5, zoom)),
+    zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom)),
+  };
+}
+
+export function setZoom(camera: Camera, zoom: number): Camera {
+  return {
+    ...camera,
+    zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom)),
   };
 }
