@@ -1,7 +1,15 @@
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { CanvasElement } from "../components/Canvas/types";
 
-export function useHistory(setElements: Dispatch<SetStateAction<CanvasElement[]>>) {
+export function useHistory(
+  setElements: Dispatch<SetStateAction<CanvasElement[]>>,
+) {
   const historyRef = useRef<{
     past: CanvasElement[][];
     present: CanvasElement[];
@@ -65,5 +73,29 @@ export function useHistory(setElements: Dispatch<SetStateAction<CanvasElement[]>
     [],
   );
 
-  return { canUndo, canRedo, historyRef, undo, redo, setElementsWithHistory };
+  const commitHistory = useCallback(
+    (previous: CanvasElement[], next: CanvasElement[]) => {
+      historyRef.current = {
+        past: [...historyRef.current.past, previous],
+        present: next,
+        future: [],
+      };
+
+      setCanUndo(historyRef.current.past.length > 0);
+      setCanRedo(false);
+
+      setElements(next);
+    },
+    [setElements],
+  );
+
+  return {
+    canUndo,
+    canRedo,
+    historyRef,
+    undo,
+    redo,
+    setElementsWithHistory,
+    commitHistory,
+  };
 }

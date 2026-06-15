@@ -17,7 +17,7 @@ export function renderScene(
   elements: CanvasElement[],
   camera: Camera,
   selectedElementId: string | null,
-  drawingElement: CanvasElement,
+  drawingElement: CanvasElement | null,
 ) {
   ctx.clearRect(0, 0, width, height);
 

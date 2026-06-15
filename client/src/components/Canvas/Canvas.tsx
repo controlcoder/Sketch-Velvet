@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 import type { Camera, CanvasElement, Tool } from "./types";
@@ -12,6 +12,9 @@ import HistoryPanel from "../HistoryPanel/HistoryPanel";
 import { createElement } from "../../tools/createElement";
 import { updateCursor } from "../../selection/updateCursor";
 import { updateDrawingElement } from "../../tools/updateDrawingElement";
+import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
+import { useRenderLoop } from "../../hooks/useRenderLoop";
+import { moveElement } from "../../selection/moveElement";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -32,8 +35,14 @@ export default function Canvas() {
     null,
   );
 
-  const { undo, redo, canUndo, canRedo, setElementsWithHistory } =
-    useHistory(setElements);
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    setElementsWithHistory,
+    commitHistory,
+  } = useHistory(setElements);
 
   const isPanning = useRef(false);
 
@@ -48,9 +57,25 @@ export default function Canvas() {
     value: string;
   } | null>(null);
 
-  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
+
+  const selectedElement = useMemo(
+    () => elements.find((element) => element.id === selectedElementId) ?? null,
+    [elements, selectedElementId],
+  );
+
+  const [movingElementId, setMovingElementId] = useState<string | null>(null);
+
+  const dragOffset = useRef({
+    x: 0,
+    y: 0,
+  });
+
+  const dragStartElementsRef = useRef<CanvasElement[] | null>(null);
+
+  const movedElementsRef = useRef<CanvasElement[] | null>(null);
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -69,10 +94,10 @@ export default function Canvas() {
       canvas.height,
       renderedElements,
       camera,
-      selectedElement?.id || null,
+      selectedElementId || null,
       drawingElement,
     );
-  }, [camera, elements, drawingElement, selectedElement]);
+  }, [camera, elements, drawingElement, selectedElementId]);
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -105,7 +130,34 @@ export default function Canvas() {
       const selected = [...elements]
         .reverse()
         .find((element) => hitTest(element, x, y));
-      setSelectedElement(selected || null);
+
+      if (!selected) {
+        setSelectedElementId(null);
+        return;
+      }
+
+      dragStartElementsRef.current = elements;
+
+      setSelectedElementId(selected.id);
+
+      setMovingElementId(selected.id);
+
+      if (isLineElement(selected)) {
+        dragOffset.current = {
+          x: x - selected.start.x,
+          y: y - selected.start.y,
+        };
+      } else if (isPencilElement(selected)) {
+        dragOffset.current = {
+          x: x - selected.points[0].x,
+          y: y - selected.points[0].y,
+        };
+      } else {
+        dragOffset.current = {
+          x: x - selected.x,
+          y: y - selected.y,
+        };
+      }
 
       return;
     }
@@ -150,8 +202,25 @@ export default function Canvas() {
 
     const { x, y } = getCanvasCoordinates(e);
 
+    if (movingElementId) {
+      setElements((prev) => {
+        const next = prev.map((element) =>
+          element.id !== movingElementId
+            ? element
+            : moveElement({ element, x, y, dragOffset: dragOffset.current }),
+        );
+
+        movedElementsRef.current = next;
+        return next;
+      });
+
+      return;
+    }
+
     if (tool === "select") {
       updateCursor(e.currentTarget, selectedElement, mouseX, mouseY, camera);
+    } else {
+      e.currentTarget.style.cursor = "crosshair";
     }
 
     if (!drawingElement) return;
@@ -161,6 +230,18 @@ export default function Canvas() {
 
   const handleMouseUp = () => {
     isPanning.current = false;
+
+    if (movingElementId) {
+      if (dragStartElementsRef.current && movedElementsRef.current) {
+        commitHistory(dragStartElementsRef.current, movedElementsRef.current);
+      }
+
+      dragStartElementsRef.current = null;
+      movedElementsRef.current = null;
+      setMovingElementId(null);
+
+      return;
+    }
 
     if (drawingElement) {
       setElementsWithHistory((prev) => [...prev, drawingElement]);
@@ -176,20 +257,9 @@ export default function Canvas() {
 
   useKeyboardShortcuts({ undo, redo });
 
-  useCanvasSize(canvasRef, redraw);
+  useCanvasSize(canvasRef);
 
-  useEffect(() => {
-    let animationId: number;
-
-    const loop = () => {
-      redraw();
-      animationId = requestAnimationFrame(loop);
-    };
-
-    animationId = requestAnimationFrame(loop);
-
-    return () => cancelAnimationFrame(animationId);
-  }, [redraw]);
+  useRenderLoop(redraw);
 
   return (
     <>

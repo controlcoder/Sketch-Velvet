@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 export function useCanvasSize(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  redraw: () => void
 ) {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -11,8 +10,6 @@ export function useCanvasSize(
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
-      redraw();
     };
 
     resize();
@@ -22,5 +19,5 @@ export function useCanvasSize(
     return () => {
       window.removeEventListener("resize", resize);
     };
-  }, [canvasRef, redraw]);
+  }, []);
 }

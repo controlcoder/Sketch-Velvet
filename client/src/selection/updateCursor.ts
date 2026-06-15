@@ -3,7 +3,6 @@ import { HANDLE_CURSORS } from "./cursors";
 import { getHandleAtPosition } from "./getHandleAtPosition";
 import { hitTest } from "./hitTest";
 
-
 export function updateCursor(
   canvas: HTMLCanvasElement,
   selectedElement: CanvasElement | null,

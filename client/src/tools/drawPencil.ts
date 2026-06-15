@@ -6,8 +6,6 @@ export function drawPencil(
 ) {
   const points = element.points;
 
-  // console.log(points);
-
   if (points.length < 2){
     return;
   }
