@@ -1,6 +1,6 @@
 // tells what should be the dimension of selected element
 
-import type { CanvasElement } from "../components/Canvas/types";
+import type { CanvasElement } from "../../components/Canvas/types";
 
 export function getBounds(element: CanvasElement) {
   switch (element.type) {

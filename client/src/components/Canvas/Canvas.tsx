@@ -1,23 +1,24 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
-import type { Camera, CanvasElement, Tool } from "./types";
+import type { Camera, CanvasElement, ResizeHandle, Tool } from "./types";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasSize } from "../../hooks/useCanvaSize";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { hitTest } from "../../selection/hitTest";
+import { hitTest } from "../../editing/selection/hitTest";
 import TextEditor from "../TextEditor/TextEditor";
 import Toolbar from "../Toolbar/Toolbar";
 import HistoryPanel from "../HistoryPanel/HistoryPanel";
 import { createElement } from "../../tools/createElement";
-import { updateCursor } from "../../selection/updateCursor";
+import { updateCursor } from "../../editing/selection/updateCursor";
 import { updateDrawingElement } from "../../tools/updateDrawingElement";
 import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
 import { useRenderLoop } from "../../hooks/useRenderLoop";
-import { moveElement } from "../../selection/moveElement";
 import ZoomControls from "../ZoomControls/ZoomControls";
 import { useZoomControls } from "../../hooks/useZoomControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { getHandleAtPosition } from "../../editing/selection/getHandleAtPosition";
+import { resizeElement } from "../../editing/resize/resizeElement";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -38,6 +39,12 @@ export default function Canvas() {
     null,
   );
 
+  const [resizingElementId, setResizingElementId] = useState<string | null>(
+    null,
+  );
+
+  const resizeHandle = useRef<ResizeHandle | null>(null);
+
   const {
     undo,
     redo,
@@ -45,7 +52,7 @@ export default function Canvas() {
     canRedo,
     setElementsWithHistory,
     commitHistory,
-    loadHistory
+    loadHistory,
   } = useHistory(setElements);
 
   const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera);
@@ -133,6 +140,23 @@ export default function Canvas() {
     const { x, y } = getCanvasCoordinates(e);
 
     if (tool === "select") {
+
+      if (selectedElement) {
+        const handle = getHandleAtPosition(
+          selectedElement,
+          e.clientX,
+          e.clientY,
+          camera,
+        );
+
+        if (handle) {
+          dragStartElementsRef.current = elements;
+          resizeHandle.current = handle;
+          setResizingElementId(selectedElement.id);
+          return;
+        }
+      }
+
       const selected = [...elements]
         .reverse()
         .find((element) => hitTest(element, x, y));
@@ -142,9 +166,9 @@ export default function Canvas() {
         return;
       }
 
-      dragStartElementsRef.current = elements;
-
       setSelectedElementId(selected.id);
+
+      dragStartElementsRef.current = elements;
 
       setMovingElementId(selected.id);
 
@@ -208,15 +232,69 @@ export default function Canvas() {
 
     const { x, y } = getCanvasCoordinates(e);
 
-    if (movingElementId) {
+    if (resizingElementId) {
       setElements((prev) => {
         const next = prev.map((element) =>
-          element.id !== movingElementId
+          element.id !== resizingElementId
             ? element
-            : moveElement({ element, x, y, dragOffset: dragOffset.current }),
+            : resizeElement(element, resizeHandle.current!, x, y),
         );
 
         movedElementsRef.current = next;
+        return next;
+      });
+
+      return;
+    }
+
+    if (movingElementId) {
+      setElements((prev) => {
+        const next = prev.map((element) => {
+          if (element.id !== movingElementId) {
+            return element;
+          }
+
+          if (isLineElement(element)) {
+            const dx = x - dragOffset.current.x - element.start.x;
+
+            const dy = y - dragOffset.current.y - element.start.y;
+
+            return {
+              ...element,
+              start: {
+                x: element.start.x + dx,
+                y: element.start.y + dy,
+              },
+              end: {
+                x: element.end.x + dx,
+                y: element.end.y + dy,
+              },
+            };
+          }
+
+          if (isPencilElement(element)) {
+            const dx = x - dragOffset.current.x - element.points[0].x;
+
+            const dy = y - dragOffset.current.y - element.points[0].y;
+
+            return {
+              ...element,
+              points: element.points.map((p) => ({
+                x: p.x + dx,
+                y: p.y + dy,
+              })),
+            };
+          }
+
+          return {
+            ...element,
+            x: x - dragOffset.current.x,
+            y: y - dragOffset.current.y,
+          };
+        });
+
+        movedElementsRef.current = next;
+
         return next;
       });
 
@@ -236,6 +314,20 @@ export default function Canvas() {
 
   const handleMouseUp = () => {
     isPanning.current = false;
+
+    if (resizingElementId) {
+      if (dragStartElementsRef.current && movedElementsRef.current) {
+        commitHistory(dragStartElementsRef.current, movedElementsRef.current);
+      }
+
+      resizeHandle.current = null;
+      movedElementsRef.current = null;
+      dragStartElementsRef.current = null;
+
+      setResizingElementId(null);
+
+      return;
+    }
 
     if (movingElementId) {
       if (dragStartElementsRef.current && movedElementsRef.current) {

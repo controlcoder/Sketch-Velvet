@@ -22,7 +22,6 @@ export function useKeyboardShortcuts({
       const isModifier = e.ctrlKey || e.metaKey;
 
       if (isModifier && e.key === "z") {
-        console.log("zzzzzzzz");
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();

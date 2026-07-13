@@ -1,5 +1,5 @@
-import type { Camera, CanvasElement } from "../components/Canvas/types";
-import { HANDLE_CURSORS } from "./cursors";
+import type { Camera, CanvasElement } from "../../components/Canvas/types";
+import { HANDLE_CURSORS } from "../../constants/cursors";
 import { getHandleAtPosition } from "./getHandleAtPosition";
 import { hitTest } from "./hitTest";
 

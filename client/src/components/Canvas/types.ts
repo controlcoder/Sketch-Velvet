@@ -71,3 +71,5 @@ export type CanvasElement =
   | LineElement
   | PencilElement
   | TextElement;
+
+export type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";

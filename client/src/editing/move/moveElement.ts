@@ -1,5 +1,5 @@
-import type { CanvasElement, Point } from "../components/Canvas/types";
-import { isLineElement, isPencilElement } from "../utils/elementHelpers";
+import type { CanvasElement, Point } from "../../components/Canvas/types";
+import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
 
 interface moveElementProps {
   element: CanvasElement;

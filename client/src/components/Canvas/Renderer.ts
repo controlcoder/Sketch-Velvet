@@ -7,7 +7,7 @@ import { drawPencil } from "../../tools/drawPencil";
 import { drawRectangle } from "../../tools/drawRectangle";
 import { drawText } from "../../tools/drawText";
 import { drawGrid } from "./drawGrid";
-import { drawSelection } from "../../selection/drawSelection";
+import { drawSelection } from "../../editing/selection/drawSelection";
 import type { Camera, CanvasElement } from "./types";
 
 export function renderScene(

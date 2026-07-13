@@ -1,4 +1,4 @@
-import type { Camera, CanvasElement } from "../components/Canvas/types";
+import type { Camera, CanvasElement, ResizeHandle } from "../../components/Canvas/types";
 import { getHandlePositions } from "./getHandlePositions";
 import { getBounds } from "./getBounds";
 
@@ -7,7 +7,7 @@ export function getHandleAtPosition(
   mouseX: number,
   mouseY: number,
   camera: Camera,
-): string | null {
+): ResizeHandle | null {
   const bounds = getBounds(element);
 
   if (!bounds) return null;
@@ -29,7 +29,7 @@ export function getHandleAtPosition(
       mouseY >= screenY - 6 &&
       mouseY <= screenY + 6
     ) {
-      return handle.id;
+      return handle.id as ResizeHandle;
     }
   }
 

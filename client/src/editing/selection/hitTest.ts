@@ -6,7 +6,7 @@ import type {
   LineElement,
   RectangleElement,
   TextElement,
-} from "../components/Canvas/types";
+} from "../../components/Canvas/types";
 
 export function hitTest(element: CanvasElement, x: number, y: number): boolean {
   switch (element.type) {
