@@ -19,6 +19,22 @@ export function useHistory(
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  const loadHistory = useCallback(
+    (elements: CanvasElement[]) => {
+      historyRef.current = {
+        past: [],
+        present: elements,
+        future: [],
+      };
+
+      setCanUndo(false);
+      setCanRedo(false);
+
+      setElements(elements);
+    },
+    [setElements],
+  );
+
   const undo = useCallback(() => {
     const { past, present, future } = historyRef.current;
     if (past.length === 0) return;
@@ -33,7 +49,7 @@ export function useHistory(
     setCanRedo(historyRef.current.future.length > 0);
 
     setElements(historyRef.current.present);
-  }, []);
+  }, [setElements]);
 
   const redo = useCallback(() => {
     const { past, present, future } = historyRef.current;
@@ -49,7 +65,7 @@ export function useHistory(
     setCanRedo(historyRef.current.future.length > 0);
 
     setElements(historyRef.current.present);
-  }, []);
+  }, [setElements]);
 
   const setElementsWithHistory = useCallback(
     (
@@ -65,7 +81,7 @@ export function useHistory(
         };
 
         setCanUndo(historyRef.current.past.length > 0);
-        setCanRedo(historyRef.current.future.length > 0);
+        setCanRedo(false);
 
         return next;
       });
@@ -97,5 +113,6 @@ export function useHistory(
     redo,
     setElementsWithHistory,
     commitHistory,
+    loadHistory,
   };
 }

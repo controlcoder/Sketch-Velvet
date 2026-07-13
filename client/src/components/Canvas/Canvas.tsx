@@ -17,6 +17,7 @@ import { useRenderLoop } from "../../hooks/useRenderLoop";
 import { moveElement } from "../../selection/moveElement";
 import ZoomControls from "../ZoomControls/ZoomControls";
 import { useZoomControls } from "../../hooks/useZoomControls";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,6 +45,7 @@ export default function Canvas() {
     canRedo,
     setElementsWithHistory,
     commitHistory,
+    loadHistory
   } = useHistory(setElements);
 
   const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera);
@@ -265,6 +267,8 @@ export default function Canvas() {
 
   useRenderLoop(redraw);
 
+  useLocalStorage(elements, loadHistory);
+
   return (
     <>
       <Toolbar
@@ -307,9 +311,6 @@ export default function Canvas() {
           display: "block",
         }}
         onDoubleClick={() => setTool("select")}
-        onKeyDown={(e) => {
-          console.log("key pressed");
-        }}
       />
 
       <HistoryPanel
