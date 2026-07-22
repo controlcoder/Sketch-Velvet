@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 import type { Camera, CanvasElement, ResizeHandle, Tool } from "./types";
@@ -19,6 +19,8 @@ import { useZoomControls } from "../../hooks/useZoomControls";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { getHandleAtPosition } from "../../editing/selection/getHandleAtPosition";
 import { resizeElement } from "../../editing/resize/resizeElement";
+import { deleteElement } from "../../editing/delete/deleteElement";
+import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -140,7 +142,6 @@ export default function Canvas() {
     const { x, y } = getCanvasCoordinates(e);
 
     if (tool === "select") {
-
       if (selectedElement) {
         const handle = getHandleAtPosition(
           selectedElement,
@@ -360,6 +361,12 @@ export default function Canvas() {
   useRenderLoop(redraw);
 
   useLocalStorage(elements, loadHistory);
+
+  useDeleteShortcut({
+    selectedElementId,
+    setSelectedElementId,
+    setElementsWithHistory,
+  });
 
   return (
     <>
