@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 import type { Camera, CanvasElement, ResizeHandle, Tool } from "./types";
@@ -16,10 +16,9 @@ import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
 import { useRenderLoop } from "../../hooks/useRenderLoop";
 import ZoomControls from "../ZoomControls/ZoomControls";
 import { useZoomControls } from "../../hooks/useZoomControls";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useBoard } from "../../hooks/useBoard";
 import { getHandleAtPosition } from "../../editing/selection/getHandleAtPosition";
 import { resizeElement } from "../../editing/resize/resizeElement";
-import { deleteElement } from "../../editing/delete/deleteElement";
 import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
 
 export default function Canvas() {
@@ -360,7 +359,8 @@ export default function Canvas() {
 
   useRenderLoop(redraw);
 
-  useLocalStorage(elements, loadHistory);
+  const BOARD_ID = "default";
+  useBoard({BOARD_ID, elements, loadHistory});
 
   useDeleteShortcut({
     selectedElementId,
