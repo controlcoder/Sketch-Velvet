@@ -1,6 +1,7 @@
 // tells what should be the dimension of selected element
 
 import type { CanvasElement } from "../../components/Canvas/types";
+import { measureText } from "../resize/measureText";
 
 export function getBounds(element: CanvasElement) {
   switch (element.type) {
@@ -23,11 +24,12 @@ export function getBounds(element: CanvasElement) {
       };
 
     case "text":
+      const { width, height } = measureText(element.text, element.fontSize);
       return {
         x: element.x,
         y: element.y - 20,
-        width: element.text.length * 10,
-        height: 24,
+        width,
+        height
       };
   }
 }

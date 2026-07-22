@@ -1,6 +1,10 @@
-import type { CanvasElement, ResizeHandle } from "../../components/Canvas/types";
+import type {
+  CanvasElement,
+  ResizeHandle,
+} from "../../components/Canvas/types";
 import { resizeCircle } from "./resizeCircle";
 import { resizeRectangle } from "./resizeRectangle";
+import { resizeText } from "./resizeText";
 
 export function resizeElement(
   element: CanvasElement,
@@ -14,6 +18,9 @@ export function resizeElement(
 
     case "circle":
       return resizeCircle(element, handle, mouseX, mouseY);
+
+    case "text":
+      return resizeText(element, mouseX);
 
     default:
       return element;

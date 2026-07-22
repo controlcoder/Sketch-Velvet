@@ -7,6 +7,7 @@ import type {
   RectangleElement,
   TextElement,
 } from "../../components/Canvas/types";
+import { measureText } from "../resize/measureText";
 
 export function hitTest(element: CanvasElement, x: number, y: number): boolean {
   switch (element.type) {
@@ -84,8 +85,7 @@ function hitTestLine(element: LineElement, x: number, y: number): boolean {
 
 // Point inside text bounding box (approximate)
 function hitTestText(element: TextElement, x: number, y: number): boolean {
-  const width = element.text.length * (element.fontSize * 0.6); // approximate
-  const height = element.fontSize;
+  const { width, height } = measureText(element.text, element.fontSize);
 
   return (
     x >= element.x &&

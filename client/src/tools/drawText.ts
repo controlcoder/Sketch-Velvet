@@ -1,7 +1,7 @@
 import type { TextElement } from "../components/Canvas/types";
 
 export function drawText(ctx: CanvasRenderingContext2D, element: TextElement) {
-  ctx.font = `${element.fontSize}px Arial`;
+  ctx.font = `${element.fontSize}px Virgil`;
 
   ctx.fillStyle = element.stroke;
 
