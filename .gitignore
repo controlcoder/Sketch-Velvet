@@ -39,3 +39,8 @@ server/uploads/
 Thumbs.db
 .vscode/
 .idea/
+
+.agents/
+.claude/
+.windsurf
+
