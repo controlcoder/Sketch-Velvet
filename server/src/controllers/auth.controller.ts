@@ -49,7 +49,7 @@ export const logout = (req: Request, res: Response) => {
 };
 
 export const me = asyncHandler(async (req, res) => {
-  const payload = (req as any).user;
+  const payload = req.user;
 
   const user = authService.me(payload);
 

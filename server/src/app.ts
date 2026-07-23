@@ -2,13 +2,14 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes";
+import boardRoutes from "./routes/board.routes";
 import { errorHandler } from "./middleware/error.middleware";
 
 const app = express();
 
 app.use(
   cors({
-    origin: process.env.VITE_URL,
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
@@ -21,6 +22,7 @@ app.get("/", (_, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/boards", boardRoutes);
 
 app.use(errorHandler);
 
