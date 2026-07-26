@@ -1,13 +1,7 @@
-import { CssBaseline } from "@mui/material";
-import Canvas from "./components/Canvas/Canvas";
+import AppRouter from "./routes/AppRouter";
 
 function App() {
-  return (
-    <>
-      <CssBaseline />
-      <Canvas />
-    </>
-  );
+  return <AppRouter />;
 }
 
 export default App;
