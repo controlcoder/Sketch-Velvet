@@ -16,12 +16,20 @@ import { isLineElement, isPencilElement } from "../../utils/elementHelpers";
 import { useRenderLoop } from "../../hooks/useRenderLoop";
 import ZoomControls from "../ZoomControls/ZoomControls";
 import { useZoomControls } from "../../hooks/useZoomControls";
-import { useBoard } from "../../hooks/useBoard";
 import { getHandleAtPosition } from "../../editing/selection/getHandleAtPosition";
 import { resizeElement } from "../../editing/resize/resizeElement";
 import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
+import { Navigate, useParams } from "react-router-dom";
+import { useAutosave } from "../../hooks/useAutosave";
+import { useSavedElements } from "../../hooks/useSavedElements";
 
 export default function Canvas() {
+  const { id: boardId } = useParams();
+
+  if (!boardId) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [camera, setCamera] = useState<Camera>({
@@ -53,7 +61,6 @@ export default function Canvas() {
     canRedo,
     setElementsWithHistory,
     commitHistory,
-    loadHistory,
   } = useHistory(setElements);
 
   const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera);
@@ -359,13 +366,18 @@ export default function Canvas() {
 
   useRenderLoop(redraw);
 
-  const BOARD_ID = "default";
-  useBoard({BOARD_ID, elements, loadHistory});
-
   useDeleteShortcut({
     selectedElementId,
     setSelectedElementId,
     setElementsWithHistory,
+  });
+
+  useSavedElements({ boardId, setElements, setCamera });
+
+  useAutosave({
+    boardId,
+    elements,
+    camera,
   });
 
   return (

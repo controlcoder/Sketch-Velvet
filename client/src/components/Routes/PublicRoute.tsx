@@ -20,5 +20,5 @@ export default function PublicRoute() {
     );
   }
 
-  return user ? <Navigate to="/board" replace /> : <Outlet />;
+  return user ? <Navigate to="/dashboard" replace /> : <Outlet />;
 }

@@ -1,25 +1,27 @@
 import { api } from "./axios";
 
+const baseURL = `/api/boards`;
+
 export const boardApi = {
   create(title: string) {
-    return api.post("/boards", {
+    return api.post(`${baseURL}`, {
       title,
     });
   },
 
   getAll() {
-    return api.get("/boards");
+    return api.get(`${baseURL}`);
   },
 
   get(boardId: string) {
-    return api.get(`/boards/${boardId}`);
+    return api.get(`${baseURL}/${boardId}`);
   },
 
   update(boardId: string, data: unknown) {
-    return api.patch(`/boards/${boardId}`, data);
+    return api.patch(`${baseURL}/${boardId}`, data);
   },
 
   delete(boardId: string) {
-    return api.delete(`/boards/${boardId}`);
+    return api.delete(`${baseURL}/${boardId}`);
   },
 };

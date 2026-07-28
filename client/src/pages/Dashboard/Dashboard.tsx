@@ -56,6 +56,9 @@ import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutli
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { boardApi } from "../../api/board.api";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { OpenInNew } from "@mui/icons-material";
 
 /* ------------------------------------------------------------------ */
 /* Theme — same tokens as the rest of the Sketch Velvet UI             */
@@ -106,7 +109,7 @@ const border = "#2C2C35";
 const placeholder = "#6B7280";
 const softShadow = "0 20px 50px rgba(0,0,0,0.25)";
 const gradient = "linear-gradient(135deg, #6965DB 0%, #4F46E5 100%)";
-const dotGrid = "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)";
+// const dotGrid = "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)";
 
 const fadeIn = keyframes`
   from { opacity: 0; } to { opacity: 1; }
@@ -120,177 +123,12 @@ const staggerFade = keyframes`
 /* Mock data                                                           */
 /* ------------------------------------------------------------------ */
 
-type Shape = "rect-circle" | "flow" | "sticky" | "freeform";
-
 interface Board {
   id: string;
   title: string;
-  editedAgo: string;
-  accent: string;
-  shape: Shape;
+  updatedAt: string;
   collaborators: number;
 }
-
-const user = {
-  name: "Jordan Ellis",
-  email: "jordan@sketchvelvet.com",
-  initials: "JE",
-};
-
-/* ------------------------------------------------------------------ */
-/* Board thumbnail — small canvas illustration, varies by shape type   */
-/* ------------------------------------------------------------------ */
-
-const BoardThumbnail = ({
-  accent,
-  shape,
-}: {
-  accent: string;
-  shape: Shape;
-}) => (
-  <Box
-    sx={{
-      position: "relative",
-      height: 128,
-      borderRadius: "12px",
-      border: `1px solid ${border}`,
-      bgcolor: "#131316",
-      backgroundImage: dotGrid,
-      backgroundSize: "16px 16px",
-      overflow: "hidden",
-      mb: 2,
-    }}
-  >
-    <Box
-      sx={{
-        position: "absolute",
-        top: -30,
-        right: -20,
-        width: 110,
-        height: 110,
-        borderRadius: "50%",
-        background: `radial-gradient(closest-side, ${accent}33, transparent)`,
-        filter: "blur(10px)",
-      }}
-    />
-
-    {shape === "rect-circle" && (
-      <>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "28%",
-            left: "14%",
-            width: 54,
-            height: 36,
-            borderRadius: "7px",
-            border: `2px solid ${accent}`,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            top: "38%",
-            left: "52%",
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            border: `2px solid ${accent}`,
-            opacity: 0.7,
-          }}
-        />
-      </>
-    )}
-    {shape === "flow" && (
-      <>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "24%",
-            left: "10%",
-            width: 50,
-            height: 30,
-            borderRadius: "6px",
-            border: `2px solid ${accent}`,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            top: "24%",
-            left: "58%",
-            width: 50,
-            height: 30,
-            borderRadius: "6px",
-            border: `2px solid ${accent}`,
-            opacity: 0.7,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            top: "37%",
-            left: "38%",
-            width: 22,
-            height: 1.5,
-            bgcolor: accent,
-            opacity: 0.6,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            top: "58%",
-            left: "20%",
-            width: 50,
-            height: 30,
-            borderRadius: "6px",
-            border: `2px solid ${accent}`,
-            opacity: 0.5,
-          }}
-        />
-      </>
-    )}
-    {shape === "sticky" && (
-      <>
-        {[
-          { t: "20%", l: "14%", r: "-6deg" },
-          { t: "30%", l: "38%", r: "5deg" },
-          { t: "48%", l: "60%", r: "-3deg" },
-        ].map((s, i) => (
-          <Box
-            key={i}
-            sx={{
-              position: "absolute",
-              top: s.t,
-              left: s.l,
-              width: 34,
-              height: 34,
-              bgcolor: accent,
-              opacity: 0.8,
-              borderRadius: "3px",
-              transform: `rotate(${s.r})`,
-            }}
-          />
-        ))}
-      </>
-    )}
-    {shape === "freeform" && (
-      <Box
-        sx={{
-          position: "absolute",
-          top: "35%",
-          left: "20%",
-          width: 130,
-          height: 70,
-          border: `1.5px dashed ${accent}`,
-          borderRadius: "10px",
-          opacity: 0.7,
-        }}
-      />
-    )}
-  </Box>
-);
 
 /* ------------------------------------------------------------------ */
 /* Board card                                                          */
@@ -299,10 +137,12 @@ const BoardThumbnail = ({
 const BoardCard = ({
   board,
   index,
+  getAllBoards,
   onRename,
 }: {
   board: Board;
   index: number;
+  getAllBoards: () => Promise<void>;
   onRename: (id: string, newName: string) => void;
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -332,6 +172,16 @@ const BoardCard = ({
     if (isEditing) inputRef.current?.select();
   }, [isEditing]);
 
+  const handleDelete = async (id: string) => {
+    setAnchorEl(null);
+    await boardApi.delete(id);
+    getAllBoards();
+  };
+
+  const updatedAt = new Date(board.updatedAt).toLocaleDateString();
+
+  const navigate = useNavigate();
+
   return (
     <Box
       sx={{
@@ -340,19 +190,15 @@ const BoardCard = ({
         borderRadius: "20px",
         border: `1px solid ${border}`,
         bgcolor: "background.paper",
-        cursor: "pointer",
         transition:
           "transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease",
         animation: `${staggerFade} 450ms ease ${index * 70}ms both`,
         "&:hover": {
           transform: "translateY(-3px)",
-          borderColor: board.accent,
           boxShadow: softShadow,
         },
       }}
     >
-      <BoardThumbnail accent={board.accent} shape={board.shape} />
-
       <Stack direction="row">
         <Box sx={{ minWidth: 0, flex: 1 }}>
           {isEditing ? (
@@ -400,7 +246,7 @@ const BoardCard = ({
           <Stack direction="row" spacing={0.6} sx={{ mt: 0.5 }}>
             <AccessTimeIcon sx={{ fontSize: 13, color: placeholder }} />
             <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
-              Edited {board.editedAgo}
+              Edited {updatedAt}
             </Typography>
           </Stack>
         </Box>
@@ -418,7 +264,7 @@ const BoardCard = ({
       </Stack>
 
       {/* collaborator avatars */}
-      {board.collaborators > 0 && (
+      {/* {board.collaborators > 0 && (
         <Stack direction="row" sx={{ mt: 1.5 }}>
           {Array.from({ length: Math.min(board.collaborators, 3) }).map(
             (_, i) => (
@@ -428,7 +274,7 @@ const BoardCard = ({
                   width: 22,
                   height: 22,
                   fontSize: 10,
-                  bgcolor: [board.accent, "#8B88F8", "#4F46E5"][i % 3],
+                  bgcolor: "#8B88F8",
                   border: "2px solid #1A1A1F",
                   ml: i === 0 ? 0 : -0.8,
                 }}
@@ -450,16 +296,25 @@ const BoardCard = ({
             </Typography>
           )}
         </Stack>
-      )}
+      )} */}
 
       <Menu
         anchorEl={anchorEl}
         open={open}
         onClose={() => setAnchorEl(null)}
-        onClick={(e) => e.stopPropagation()}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
+        <MenuItem
+          onClick={() => navigate(`/board/${board.id}`)}
+          sx={{ fontSize: 14, gap: 0 }}
+        >
+          <ListItemIcon>
+            <OpenInNew fontSize="small" sx={{ color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText>Open</ListItemText>
+        </MenuItem>
+
         <MenuItem onClick={startRename} sx={{ fontSize: 14, gap: 0 }}>
           <ListItemIcon>
             <DriveFileRenameOutlineIcon
@@ -472,7 +327,7 @@ const BoardCard = ({
 
         <Divider sx={{ borderColor: border, my: 0.5 }} />
         <MenuItem
-          onClick={() => setAnchorEl(null)}
+          onClick={() => handleDelete(board.id)}
           sx={{ fontSize: 14, gap: 0, color: "#EF4444" }}
         >
           <ListItemIcon>
@@ -544,6 +399,10 @@ const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
 const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  const { user } = useAuth();
+
+  if (!user) return;
 
   return (
     <Box
@@ -660,9 +519,7 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
                 bgcolor: "primary.main",
                 fontWeight: 600,
               }}
-            >
-              {user.initials}
-            </Avatar>
+            ></Avatar>
           </IconButton>
 
           <Menu
@@ -715,28 +572,32 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
 /* Page                                                                 */
 /* ------------------------------------------------------------------ */
 
-const accents = ["#6965DB", "#8B88F8", "#4F46E5"];
-const shapes: Shape[] = ["flow", "freeform", "rect-circle", "sticky"];
-
 const Dashboard = () => {
   const [boardList, setBoardList] = React.useState<Board[]>([]);
 
   const [openCreateDialog, setOpenCreateDialog] = React.useState(false);
   const [boardName, setBoardName] = React.useState("");
 
-  const createBoard = () => {
-    const accent = accents[Math.floor(Math.random() * accents.length)];
-    const shape = shapes[Math.floor(Math.random() * shapes.length)];
-    const newBoard: Board = {
-      id: crypto.randomUUID(),
-      title: boardName.trim() || "Untitled Board",
-      editedAgo: "Just now",
-      accent,
-      shape,
-      collaborators: 1,
-    };
+  const createBoard = async () => {
+    try {
+      const { data } = await boardApi.create(
+        boardName.trim() || "Untitled Board",
+      );
 
-    setBoardList((prev) => [newBoard, ...prev]);
+      const updatedAt = new Date(data.board.updatedAt).toLocaleDateString();
+
+      if (data.success) {
+        const newBoard: Board = {
+          id: data.board.id,
+          title: boardName.trim() || "Untitled Board",
+          updatedAt,
+          collaborators: 1,
+        };
+
+        setBoardList((prev) => [newBoard, ...prev]);
+      }
+    } catch (err) {}
+
     setOpenCreateDialog(false);
     setBoardName("");
   };
@@ -751,6 +612,15 @@ const Dashboard = () => {
     );
     await boardApi.update(id, { title: newName });
   };
+
+  const getAllBoards = async () => {
+    const { data } = await boardApi.getAll();
+    setBoardList(data.boards);
+  };
+
+  React.useEffect(() => {
+    getAllBoards();
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -885,6 +755,7 @@ const Dashboard = () => {
                 board={board}
                 index={i + 1}
                 onRename={handleRename}
+                getAllBoards={getAllBoards}
               />
             ))}
           </Box>
