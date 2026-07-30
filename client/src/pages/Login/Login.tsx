@@ -44,6 +44,8 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import TitleIcon from "@mui/icons-material/Title";
 import { authApi } from "../../api/auth.api";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 /* ------------------------------------------------------------------ */
 /* Theme — tokens taken directly from spec                             */
@@ -409,6 +411,10 @@ const GoogleIcon = () => (
 /* ------------------------------------------------------------------ */
 
 const AuthCard = () => {
+  const navigate = useNavigate();
+
+  const { setUser } = useAuth();
+
   const [showPassword, setShowPassword] = React.useState(false);
 
   const [email, setEmail] = React.useState("");
@@ -418,7 +424,10 @@ const AuthCard = () => {
     e.preventDefault();
     try {
       const { data } = await authApi.login({ email, password });
-      console.log(data);
+      if (data.success) {
+        setUser(data.user);
+        navigate("/dashboard");
+      }
     } catch (err) {
       // console.error(err);
     }
@@ -485,7 +494,7 @@ const AuthCard = () => {
           placeholder="you@example.com"
           fullWidth
           autoComplete="email"
-          InputLabelProps={{ sx: { color: "text.secondary" } }}
+          slotProps={{ inputLabel: { color: "text.secondary" } }}
         />
 
         <TextField
@@ -498,25 +507,33 @@ const AuthCard = () => {
           placeholder="Enter your password"
           fullWidth
           autoComplete="current-password"
-          InputLabelProps={{ sx: { color: "text.secondary" } }}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  // onClick={() => setShowPassword((v) => !v)}
-                  edge="end"
-                  size="small"
-                  sx={{ color: "text.secondary" }}
-                >
-                  {showPassword ? (
-                    <VisibilityOffIcon fontSize="small" />
-                  ) : (
-                    <VisibilityIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </InputAdornment>
-            ),
+          slotProps={{
+            inputLabel: {
+              sx: {
+                color: "text.secondary",
+              },
+            },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    onClick={() => setShowPassword((v) => !v)}
+                    edge="end"
+                    size="small"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    {showPassword ? (
+                      <VisibilityOffIcon fontSize="small" />
+                    ) : (
+                      <VisibilityIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
           }}
         />
 

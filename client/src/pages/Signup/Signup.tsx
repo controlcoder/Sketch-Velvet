@@ -31,9 +31,9 @@ import {
   Typography,
   TextField,
   Button,
-  Checkbox,
-  FormControlLabel,
-  Divider,
+  // Checkbox,
+  // FormControlLabel,
+  // Divider,
   IconButton,
   InputAdornment,
 } from "@mui/material";
@@ -46,6 +46,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import { authApi } from "../../api/auth.api";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /* ------------------------------------------------------------------ */
 /* Theme — tokens taken directly from spec                             */
@@ -415,26 +417,26 @@ const HeroSection = () => (
 /* Google icon (inline)                                                */
 /* ------------------------------------------------------------------ */
 
-const GoogleIcon = () => (
-  <Box component="svg" viewBox="0 0 18 18" sx={{ width: 18, height: 18 }}>
-    <path
-      fill="#4285F4"
-      d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"
-    />
-    <path
-      fill="#34A853"
-      d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"
-    />
-    <path
-      fill="#EA4335"
-      d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"
-    />
-  </Box>
-);
+// const GoogleIcon = () => (
+//   <Box component="svg" viewBox="0 0 18 18" sx={{ width: 18, height: 18 }}>
+//     <path
+//       fill="#4285F4"
+//       d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"
+//     />
+//     <path
+//       fill="#34A853"
+//       d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"
+//     />
+//     <path
+//       fill="#FBBC05"
+//       d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"
+//     />
+//     <path
+//       fill="#EA4335"
+//       d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"
+//     />
+//   </Box>
+// );
 
 /* ------------------------------------------------------------------ */
 /* Password strength                                                   */
@@ -495,6 +497,10 @@ const StrengthMeter = ({ strength }: { strength: Strength }) => {
 /* ------------------------------------------------------------------ */
 
 const SignupCard = () => {
+  const navigate = useNavigate();
+
+  const { setUser } = useAuth();
+
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -527,12 +533,16 @@ const SignupCard = () => {
   //       : "default"
   //   : "default";
 
-  const handleSubmit = async(e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // setSubmitted(true);
     setTouched({ name: true, email: true, password: true, confirm: true });
-    await authApi.signup({ name, email, password });
-    // console.log(data);
+    const { data } = await authApi.signup({ name, email, password });
+    console.log(data);
+    if (data.success) {
+      setUser(data.user);
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -590,21 +600,27 @@ const SignupCard = () => {
             id="name"
             name="name"
             label="Full Name"
-            placeholder="Jordan Ellis"
+            placeholder="Ritik Kumar"
             fullWidth
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-            InputLabelProps={{ sx: { color: "text.secondary" } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PersonOutlineIcon
-                    sx={{ fontSize: 19, color: placeholder }}
-                  />
-                </InputAdornment>
-              ),
+            slotProps={{
+              inputLabel: {
+                sx: {
+                  color: "text.secondary",
+                },
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonOutlineIcon
+                      sx={{ fontSize: 19, color: placeholder }}
+                    />
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={fieldSx()}
           />
@@ -626,14 +642,27 @@ const SignupCard = () => {
             helperText={
               emailState === "error" ? "Enter a valid email address" : " "
             }
-            FormHelperTextProps={{ sx: { fontSize: 12, ml: 0.2 } }}
-            InputLabelProps={{ sx: { color: "text.secondary" } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <MailOutlineIcon sx={{ fontSize: 19, color: placeholder }} />
-                </InputAdornment>
-              ),
+            slotProps={{
+              inputLabel: {
+                sx: {
+                  color: "text.secondary",
+                },
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MailOutlineIcon
+                      sx={{ fontSize: 19, color: placeholder }}
+                    />
+                  </InputAdornment>
+                ),
+              },
+              formHelperText: {
+                sx: {
+                  fontSize: 12,
+                  ml: 0.2,
+                },
+              },
             }}
             sx={fieldSx(emailState)}
           />
@@ -651,32 +680,40 @@ const SignupCard = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-            InputLabelProps={{ sx: { color: "text.secondary" } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LockOutlinedIcon sx={{ fontSize: 19, color: placeholder }} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    onClick={() => setShowPassword((v) => !v)}
-                    edge="end"
-                    size="small"
-                    sx={{ color: "text.secondary" }}
-                  >
-                    {showPassword ? (
-                      <VisibilityOffIcon fontSize="small" />
-                    ) : (
-                      <VisibilityIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </InputAdornment>
-              ),
+            slotProps={{
+              inputLabel: {
+                sx: {
+                  color: "text.secondary",
+                },
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon
+                      sx={{ fontSize: 19, color: placeholder }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      onClick={() => setShowPassword((v) => !v)}
+                      edge="end"
+                      size="small"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {showPassword ? (
+                        <VisibilityOffIcon fontSize="small" />
+                      ) : (
+                        <VisibilityIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={fieldSx()}
           />

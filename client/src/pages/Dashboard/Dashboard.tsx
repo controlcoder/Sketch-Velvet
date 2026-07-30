@@ -59,6 +59,7 @@ import { boardApi } from "../../api/board.api";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { OpenInNew } from "@mui/icons-material";
+import { authApi } from "../../api/auth.api";
 
 /* ------------------------------------------------------------------ */
 /* Theme — same tokens as the rest of the Sketch Velvet UI             */
@@ -402,7 +403,18 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
 
   const { user } = useAuth();
 
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
+
   if (!user) return;
+
+  const handleLogout = async () => {
+    const { data } = await authApi.logout();
+    if (data.success) {
+      setUser(null);
+      navigate("/");
+    }
+  };
 
   return (
     <Box
@@ -466,12 +478,14 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
               },
             },
           }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 18, color: placeholder }} />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18, color: placeholder }} />
+                </InputAdornment>
+              ),
+            },
           }}
         />
 
@@ -528,7 +542,14 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
             onClose={() => setAnchorEl(null)}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
-            PaperProps={{ sx: { minWidth: 220, mt: 1 } }}
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 220,
+                  mt: 1,
+                },
+              },
+            }}
           >
             <Box sx={{ px: 2, py: 1.5 }}>
               <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
@@ -553,7 +574,7 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
             </MenuItem>
             <Divider sx={{ borderColor: border }} />
             <MenuItem
-              onClick={() => setAnchorEl(null)}
+              onClick={handleLogout}
               sx={{ fontSize: 14, py: 1.2, gap: 0, color: "#EF4444" }}
             >
               <ListItemIcon>
@@ -627,13 +648,15 @@ const Dashboard = () => {
       <Dialog
         open={openCreateDialog}
         onClose={() => setOpenCreateDialog(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: "background.paper",
-            borderRadius: "20px",
-            border: `1px solid ${border}`,
-            minWidth: 420,
-            p: 1,
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: "background.paper",
+              borderRadius: "20px",
+              border: `1px solid ${border}`,
+              minWidth: 420,
+              p: 1,
+            },
           },
         }}
       >
