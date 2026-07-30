@@ -50,9 +50,7 @@ export const logout = (req: Request, res: Response) => {
 
 export const me = asyncHandler(async (req, res) => {
   const payload = req.user;
-
-  const user = authService.me(payload);
-
+  const user = await authService.me(payload);
   res.json({
     success: true,
     user,

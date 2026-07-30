@@ -880,12 +880,12 @@ const SignupCard = () => {
         Already have an account?{" "}
         <Typography
           component="a"
-          href="#"
+          onClick={() => navigate("/login")}
           sx={{
             color: "primary.light",
             textDecoration: "none",
             fontWeight: 600,
-            "&:hover": { textDecoration: "underline" },
+            "&:hover": { textDecoration: "underline", cursor: "pointer" },
           }}
         >
           Login
