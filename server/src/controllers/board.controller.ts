@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import * as boardService from "../services/board.service";
 import { createBoardSchema, updateBoardSchema } from "../schemas/board.schema";
+import { shareBoardSchema } from "../schemas/share.schema";
 
 export const createBoard = asyncHandler(async (req, res) => {
   const data = createBoardSchema.parse(req.body);
@@ -55,5 +56,41 @@ export const deleteBoard = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: "Board deleted successfully",
+  });
+});
+
+export const shareBoard = asyncHandler(async (req, res) => {
+  const boardId = req.params.id as string;
+
+  const data = shareBoardSchema.parse(req.body);
+
+  await boardService.shareBoard(boardId, req.user.userId, data);
+
+  res.json({
+    success: true,
+    message: "Board shared successfully",
+  });
+});
+
+export const getBoardMembers = asyncHandler(async (req, res) => {
+  const boardId = req.params.id as string;
+
+  const members = await boardService.getBoardMembers(boardId, req.user.userId);
+  res.json({
+    success: true,
+    members,
+  });
+});
+
+export const removeMember = asyncHandler(async (req, res) => {
+  const boardId = req.params.boardId as string;
+
+  const memberId = req.params.userId as string;
+
+  await boardService.removeMember(boardId, req.user.userId, memberId);
+
+  res.json({
+    success: true,
+    message: "Collaborator removed successfully",
   });
 });

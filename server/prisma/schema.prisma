@@ -13,24 +13,41 @@ datasource db {
 }
 
 model User {
-  id    String @id @default(cuid())
-  name  String
-  email String @unique
-  password  String
-  boards    Board[]
-  createdAt DateTime @default(now())
+  id          String        @id @default(cuid())
+  name        String
+  email       String        @unique
+  password    String
+  boards      Board[]
+  memberships BoardMember[]
+  createdAt   DateTime      @default(now())
 }
 
 model Board {
-  id         String   @id @default(cuid())
-  title      String
-  elements   Json
-
+  id        String        @id @default(cuid())
+  title     String
+  elements  Json
   viewport  Json
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members   BoardMember[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
 
-  ownerId    String
-  owner      User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+enum BoardRole {
+  OWNER
+  EDITOR
+}
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model BoardMember {
+  id      String    @id @default(cuid())
+  boardId String
+  board   Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    BoardRole @default()
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
 }
