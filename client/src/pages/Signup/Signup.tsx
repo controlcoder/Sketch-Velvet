@@ -1,26 +1,3 @@
-/**
- * Signup.tsx
- * -----------------------------------------------------------------------
- * Account creation screen for "Sketch Velvet" — split layout, dark mode.
- * Where Login says "Welcome Back," this screen says "Start Creating" —
- * benefit-led copy, a livelier whiteboard illustration, and a form that
- * gives real-time feedback (password strength, match validation).
- *
- * Dependencies (install if you don't already have them):
- *   npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
- *
- * Font — add to your index.html:
- *   <link rel="preconnect" href="https://fonts.googleapis.com">
- *   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
- *
- * Usage:
- *   import Signup from './Signup';
- *   export default function App() {
- *     return <Signup />;
- *   }
- * -----------------------------------------------------------------------
- */
-
 import * as React from "react";
 import {
   ThemeProvider,
@@ -49,10 +26,20 @@ import { authApi } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
-/* ------------------------------------------------------------------ */
-/* Theme — tokens taken directly from spec                             */
-/* ------------------------------------------------------------------ */
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: { message?: unknown } } })
+      .response;
+
+    if (typeof response?.data?.message === "string") {
+      return response.data.message;
+    }
+  }
+
+  return error instanceof Error ? error.message : "Unable to create your account.";
+}
 
 const theme = createTheme({
   palette: {
@@ -94,10 +81,6 @@ const softShadow = "0 20px 50px rgba(0,0,0,0.25)";
 const gradient = "linear-gradient(135deg, #6965DB 0%, #4F46E5 100%)";
 const dotGrid = "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)";
 
-/* ------------------------------------------------------------------ */
-/* Animation keyframes                                                 */
-/* ------------------------------------------------------------------ */
-
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -122,10 +105,6 @@ const float = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 `;
-
-/* ------------------------------------------------------------------ */
-/* Shared input styling — supports focus / success / error states      */
-/* ------------------------------------------------------------------ */
 
 type FieldState = "default" | "success" | "error";
 
@@ -154,10 +133,6 @@ const fieldSx = (state: FieldState = "default") => {
     },
   };
 };
-
-/* ------------------------------------------------------------------ */
-/* Left section — whiteboard-style product showcase                    */
-/* ------------------------------------------------------------------ */
 
 const benefits = [
   "Unlimited Boards",
@@ -414,10 +389,6 @@ const HeroSection = () => (
   </Stack>
 );
 
-/* ------------------------------------------------------------------ */
-/* Google icon (inline)                                                */
-/* ------------------------------------------------------------------ */
-
 // const GoogleIcon = () => (
 //   <Box component="svg" viewBox="0 0 18 18" sx={{ width: 18, height: 18 }}>
 //     <path
@@ -438,10 +409,6 @@ const HeroSection = () => (
 //     />
 //   </Box>
 // );
-
-/* ------------------------------------------------------------------ */
-/* Password strength                                                   */
-/* ------------------------------------------------------------------ */
 
 type Strength = "weak" | "medium" | "strong" | null;
 
@@ -493,10 +460,6 @@ const StrengthMeter = ({ strength }: { strength: Strength }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Right section — signup card                                         */
-/* ------------------------------------------------------------------ */
-
 const SignupCard = () => {
   const navigate = useNavigate();
 
@@ -532,9 +495,13 @@ const SignupCard = () => {
     onSuccess: ({ data }: any) => {
       if (data.success) {
         setUser(data.user);
+        toast.success("Account created successfully!");
         navigate("/dashboard");
+      } else {
+        toast.error(data.message ?? "Unable to create your account.");
       }
     },
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
   // const confirmState: FieldState = touched.confirm
   //   ? confirmMismatch
@@ -901,10 +868,6 @@ const SignupCard = () => {
     </Box>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Page                                                                 */
-/* ------------------------------------------------------------------ */
 
 const Signup = () => (
   <ThemeProvider theme={theme}>

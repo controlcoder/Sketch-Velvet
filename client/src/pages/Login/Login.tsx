@@ -1,24 +1,3 @@
-/**
- * LoginPage.tsx
- * -----------------------------------------------------------------------
- * Authentication screen for "Sketch Velvet" — split layout, dark mode,
- * flat modern UI. Left: canvas-style hero illustration. Right: auth card.
- *
- * Dependencies (install if you don't already have them):
- *   npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
- *
- * Font — add to your index.html:
- *   <link rel="preconnect" href="https://fonts.googleapis.com">
- *   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
- *
- * Usage:
- *   import LoginPage from './LoginPage';
- *   export default function App() {
- *     return <LoginPage />;
- *   }
- * -----------------------------------------------------------------------
- */
-
 import * as React from "react";
 import {
   ThemeProvider,
@@ -47,10 +26,20 @@ import { authApi } from "../../api/auth.api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
-/* ------------------------------------------------------------------ */
-/* Theme — tokens taken directly from spec                             */
-/* ------------------------------------------------------------------ */
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: { message?: unknown } } })
+      .response;
+
+    if (typeof response?.data?.message === "string") {
+      return response.data.message;
+    }
+  }
+
+  return error instanceof Error ? error.message : "Unable to log in.";
+}
 
 const theme = createTheme({
   palette: {
@@ -107,10 +96,6 @@ const softShadow = "0 20px 50px rgba(0,0,0,0.25)";
 const gradient = "linear-gradient(135deg, #6965DB 0%, #4F46E5 100%)";
 const dotGrid = "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)";
 
-/* ------------------------------------------------------------------ */
-/* Animation keyframes                                                 */
-/* ------------------------------------------------------------------ */
-
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -130,10 +115,6 @@ const staggerFade = keyframes`
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 `;
-
-/* ------------------------------------------------------------------ */
-/* Left section — hero illustration                                    */
-/* ------------------------------------------------------------------ */
 
 const features = [
   "Infinite Canvas",
@@ -382,10 +363,6 @@ const HeroSection = () => (
   </Stack>
 );
 
-/* ------------------------------------------------------------------ */
-/* Google icon (inline, brand-standard colors, minimal mark)           */
-/* ------------------------------------------------------------------ */
-
 // const GoogleIcon = () => (
 //   <Box component="svg" viewBox="0 0 18 18" sx={{ width: 18, height: 18 }}>
 //     <path
@@ -407,10 +384,6 @@ const HeroSection = () => (
 //   </Box>
 // );
 
-/* ------------------------------------------------------------------ */
-/* Right section — authentication card                                 */
-/* ------------------------------------------------------------------ */
-
 const AuthCard = () => {
   const navigate = useNavigate();
 
@@ -426,9 +399,13 @@ const AuthCard = () => {
     onSuccess: ({ data }) => {
       if (data.success) {
         setUser(data.user);
+        toast.success("Welcome back!");
         navigate("/dashboard");
+      } else {
+        toast.error(data.message ?? "Unable to log in.");
       }
     },
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -646,10 +623,6 @@ const AuthCard = () => {
     </Box>
   );
 };
-
-/* ------------------------------------------------------------------ */
-/* Page                                                                 */
-/* ------------------------------------------------------------------ */
 
 const LoginPage = () => (
   <ThemeProvider theme={theme}>
