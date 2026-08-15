@@ -1,28 +1,3 @@
-/**
- * Dashboard.tsx
- * -----------------------------------------------------------------------
- * The landing screen after login for "Sketch Velvet" — shows every board
- * the user has created, a way to start a new one, and account access
- * (profile / logout) via the avatar menu in the top bar.
- *
- * Continues the same design system as LoginPage / SignupPage:
- * dark mode, #6965DB primary, Inter, 20px card radius, soft shadows.
- *
- * Dependencies (install if you don't already have them):
- *   npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
- *
- * Font — add to your index.html:
- *   <link rel="preconnect" href="https://fonts.googleapis.com">
- *   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
- *
- * Usage:
- *   import Dashboard from './Dashboard';
- *   export default function App() {
- *     return <Dashboard />;
- *   }
- * -----------------------------------------------------------------------
- */
-
 import * as React from "react";
 import {
   ThemeProvider,
@@ -40,7 +15,7 @@ import {
   ListItemText,
   Divider,
   TextField,
-  InputAdornment,
+  // InputAdornment,
   DialogContent,
   Dialog,
   DialogTitle,
@@ -48,7 +23,8 @@ import {
 } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
+// import SearchIcon from "@mui/icons-material/Search";
+// import Share from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -60,6 +36,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { OpenInNew } from "@mui/icons-material";
 import { authApi } from "../../api/auth.api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /* ------------------------------------------------------------------ */
 /* Theme — same tokens as the rest of the Sketch Velvet UI             */
@@ -120,9 +97,6 @@ const staggerFade = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-/* ------------------------------------------------------------------ */
-/* Mock data                                                           */
-/* ------------------------------------------------------------------ */
 
 interface Board {
   id: string;
@@ -138,12 +112,12 @@ interface Board {
 const BoardCard = ({
   board,
   index,
-  getAllBoards,
+  onDelete,
   onRename,
 }: {
   board: Board;
   index: number;
-  getAllBoards: () => Promise<void>;
+  onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -173,11 +147,13 @@ const BoardCard = ({
     if (isEditing) inputRef.current?.select();
   }, [isEditing]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     setAnchorEl(null);
-    await boardApi.delete(id);
-    getAllBoards();
+    onDelete(id);
   };
+
+  // const shareBoard = async (id: string) => {
+  // };
 
   const updatedAt = new Date(board.updatedAt).toLocaleDateString();
 
@@ -316,6 +292,13 @@ const BoardCard = ({
           <ListItemText>Open</ListItemText>
         </MenuItem>
 
+        {/* <MenuItem onClick={()=>shareBoard(board.id)} sx={{ fontSize: 14, gap: 0 }}>
+          <ListItemIcon>
+            <Share fontSize="small" sx={{ color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText>Share</ListItemText>
+        </MenuItem> */}
+
         <MenuItem onClick={startRename} sx={{ fontSize: 14, gap: 0 }}>
           <ListItemIcon>
             <DriveFileRenameOutlineIcon
@@ -323,7 +306,7 @@ const BoardCard = ({
               sx={{ color: "text.secondary" }}
             />
           </ListItemIcon>
-          <ListItemText>Rename</ListItemText>
+          <ListItemText>Share</ListItemText>
         </MenuItem>
 
         <Divider sx={{ borderColor: border, my: 0.5 }} />
@@ -406,15 +389,19 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: ({ data }: any) => {
+      if (data.success) {
+        setUser(null);
+        navigate("/");
+      }
+    },
+  });
+
   if (!user) return;
 
-  const handleLogout = async () => {
-    const { data } = await authApi.logout();
-    if (data.success) {
-      setUser(null);
-      navigate("/");
-    }
-  };
+  const handleLogout = () => logoutMutation.mutate();
 
   return (
     <Box
@@ -429,15 +416,16 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
       }}
     >
       <Stack direction="row" sx={{ px: { xs: 2.5, md: 4 }, py: 1.8 }}>
-        <Stack direction="row" spacing={1.2}>
+        <Stack direction="row" spacing={1.2} style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
           <Box
             sx={{
               width: 30,
               height: 30,
               borderRadius: "8px",
               background: gradient,
-              display: "grid",
-              placeItems: "center",
+              display: "flex",
+              alignItems:"center",
+              justifyContent:"center"
             }}
           >
             <Box
@@ -460,7 +448,7 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
           </Typography>
         </Stack>
 
-        <TextField
+        {/* <TextField
           placeholder="Search boards..."
           size="small"
           sx={{
@@ -487,10 +475,10 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
               ),
             },
           }}
-        />
+        /> */}
 
         <Stack direction="row" spacing={2}>
-          <Button
+          {/* <Button
             onClick={onCreate}
             startIcon={<AddIcon sx={{ fontSize: 18 }} />}
             disableElevation
@@ -509,7 +497,7 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
             }}
           >
             New Board
-          </Button>
+          </Button> */}
 
           <IconButton
             onClick={onCreate}
@@ -575,6 +563,7 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
             <Divider sx={{ borderColor: border }} />
             <MenuItem
               onClick={handleLogout}
+              disabled={logoutMutation.isPending}
               sx={{ fontSize: 14, py: 1.2, gap: 0, color: "#EF4444" }}
             >
               <ListItemIcon>
@@ -594,31 +583,34 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
 /* ------------------------------------------------------------------ */
 
 const Dashboard = () => {
-  const [boardList, setBoardList] = React.useState<Board[]>([]);
-
   const [openCreateDialog, setOpenCreateDialog] = React.useState(false);
   const [boardName, setBoardName] = React.useState("");
+  const queryClient = useQueryClient();
 
-  const createBoard = async () => {
-    try {
-      const { data } = await boardApi.create(
-        boardName.trim() || "Untitled Board",
-      );
+  const { data: boardList = [] } = useQuery({
+    queryKey: ["boards"],
+    queryFn: boardApi.getAll,
+    select: ({ data }) => data.boards.ownedBoards as Board[],
+  });
 
-      const updatedAt = new Date(data.board.updatedAt).toLocaleDateString();
+  const createBoardMutation = useMutation({
+    mutationFn: boardApi.create,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["boards"] }),
+  });
 
-      if (data.success) {
-        const newBoard: Board = {
-          id: data.board.id,
-          title: boardName.trim() || "Untitled Board",
-          updatedAt,
-          collaborators: 1,
-        };
+  const renameBoardMutation = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      boardApi.update(id, { title }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["boards"] }),
+  });
 
-        setBoardList((prev) => [newBoard, ...prev]);
-      }
-    } catch (err) {}
+  const deleteBoardMutation = useMutation({
+    mutationFn: boardApi.delete,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["boards"] }),
+  });
 
+  const createBoard = () => {
+    createBoardMutation.mutate(boardName.trim() || "Untitled Board");
     setOpenCreateDialog(false);
     setBoardName("");
   };
@@ -627,21 +619,10 @@ const Dashboard = () => {
     setOpenCreateDialog(true);
   };
 
-  const handleRename = async (id: string, newName: string) => {
-    setBoardList((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, title: newName } : b)),
-    );
-    await boardApi.update(id, { title: newName });
-  };
+  const handleRename = (id: string, title: string) =>
+    renameBoardMutation.mutate({ id, title });
 
-  const getAllBoards = async () => {
-    const { data } = await boardApi.getAll();
-    setBoardList(data.boards);
-  };
-
-  React.useEffect(() => {
-    getAllBoards();
-  }, []);
+  const handleDelete = (id: string) => deleteBoardMutation.mutate(id);
 
   return (
     <ThemeProvider theme={theme}>
@@ -718,6 +699,7 @@ const Dashboard = () => {
             variant="contained"
             disableElevation
             onClick={createBoard}
+            disabled={createBoardMutation.isPending}
             sx={{
               background: gradient,
               px: 3,
@@ -727,7 +709,7 @@ const Dashboard = () => {
               },
             }}
           >
-            Create Board
+            {createBoardMutation.isPending ? "Creating..." : "Create Board"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -753,7 +735,7 @@ const Dashboard = () => {
                 Your Boards
               </Typography>
               <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-                {boardList.length} board{boardList.length !== 1 ? "s" : ""} ·
+                {boardList.length || 0} board{boardList.length > 1 ? "s" : ""} ·
                 pick up where you left off
               </Typography>
             </Box>
@@ -778,7 +760,7 @@ const Dashboard = () => {
                 board={board}
                 index={i + 1}
                 onRename={handleRename}
-                getAllBoards={getAllBoards}
+                onDelete={handleDelete}
               />
             ))}
           </Box>

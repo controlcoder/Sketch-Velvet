@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { authApi } from "../api/auth.api";
 
 interface User {
@@ -18,29 +19,35 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  async function checkAuth() {
-    try {
-      const res = await authApi.me();
-      setUser(res.data.user);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    data: authResponse,
+    isError,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: authApi.me,
+    retry: false,
+  });
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (authResponse?.data.user) {
+      setUser(authResponse.data.user);
+    } else if (isError) {
+      setUser(null);
+    }
+  }, [authResponse, isError]);
+
+  async function checkAuth() {
+    await refetch();
+  }
 
   return (
     <AuthContext.Provider
       value={{
         user,
         setUser,
-        loading,
+        loading: isLoading,
         checkAuth,
       }}
     >

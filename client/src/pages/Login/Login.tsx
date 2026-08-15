@@ -46,6 +46,7 @@ import TitleIcon from "@mui/icons-material/Title";
 import { authApi } from "../../api/auth.api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useMutation } from "@tanstack/react-query";
 
 /* ------------------------------------------------------------------ */
 /* Theme — tokens taken directly from spec                             */
@@ -420,17 +421,19 @@ const AuthCard = () => {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const { data } = await authApi.login({ email, password });
+  const loginMutation = useMutation({
+    mutationFn: authApi.login,
+    onSuccess: ({ data }) => {
       if (data.success) {
         setUser(data.user);
         navigate("/dashboard");
       }
-    } catch (err) {
-      // console.error(err);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -570,6 +573,7 @@ const AuthCard = () => {
 
         <Button
           type="submit"
+          disabled={loginMutation.isPending}
           fullWidth
           size="large"
           disableElevation
@@ -585,7 +589,7 @@ const AuthCard = () => {
             },
           }}
         >
-          Login
+          {loginMutation.isPending ? "Logging in..." : "Login"}
         </Button>
 
         {/* <Stack direction="row" spacing={1.5}>

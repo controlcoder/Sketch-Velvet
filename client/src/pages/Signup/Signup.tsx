@@ -48,6 +48,7 @@ import NorthEastIcon from "@mui/icons-material/NorthEast";
 import { authApi } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 
 /* ------------------------------------------------------------------ */
 /* Theme — tokens taken directly from spec                             */
@@ -525,6 +526,16 @@ const SignupCard = () => {
         ? "success"
         : "error"
     : "default";
+
+  const signupMutation = useMutation({
+    mutationFn: authApi.signup,
+    onSuccess: ({ data }: any) => {
+      if (data.success) {
+        setUser(data.user);
+        navigate("/dashboard");
+      }
+    },
+  });
   // const confirmState: FieldState = touched.confirm
   //   ? confirmMismatch
   //     ? "error"
@@ -533,16 +544,11 @@ const SignupCard = () => {
   //       : "default"
   //   : "default";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // setSubmitted(true);
     setTouched({ name: true, email: true, password: true, confirm: true });
-    const { data } = await authApi.signup({ name, email, password });
-    console.log(data);
-    if (data.success) {
-      setUser(data.user);
-      navigate("/dashboard");
-    }
+    signupMutation.mutate({ name, email, password });
   };
 
   return (
@@ -820,6 +826,7 @@ const SignupCard = () => {
 
         <Button
           type="submit"
+          disabled={signupMutation.isPending}
           fullWidth
           size="large"
           disableElevation
@@ -837,7 +844,7 @@ const SignupCard = () => {
             },
           }}
         >
-          Create Account
+          {signupMutation.isPending ? "Creating account..." : "Create Account"}
         </Button>
 
         {/* <Stack direction="row" spacing={1.5}>

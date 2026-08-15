@@ -14,7 +14,6 @@ interface LoginData {
 const baseURL = `/api/auth`;
 
 export const authApi = {
-
   signup(data: SignupData) {
     return api.post(`${baseURL}/signup`, data);
   },
