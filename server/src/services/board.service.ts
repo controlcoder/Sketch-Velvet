@@ -218,6 +218,7 @@ export async function getBoardMembers(boardId: string, userId: string) {
           email: true,
         },
       },
+      
     },
     orderBy: {
       role: "asc",

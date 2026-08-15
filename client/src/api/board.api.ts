@@ -24,4 +24,16 @@ export const boardApi = {
   delete(boardId: string) {
     return api.delete(`${baseURL}/${boardId}`);
   },
+
+  share(boardId: string, email: string, role: "EDITOR") {
+    return api.post(`${baseURL}/${boardId}/share`, { email, role });
+  },
+
+  getMembers(boardId: string) {
+    return api.get(`${baseURL}/${boardId}/members`);
+  },
+
+  removeMember(boardId: string, userId: string) {
+    return api.delete(`${baseURL}/${boardId}/members/${userId}`);
+  },
 };

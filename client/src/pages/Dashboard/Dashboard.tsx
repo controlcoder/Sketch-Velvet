@@ -24,7 +24,7 @@ import {
 import { keyframes } from "@emotion/react";
 import AddIcon from "@mui/icons-material/Add";
 // import SearchIcon from "@mui/icons-material/Search";
-// import Share from "@mui/icons-material/Share";
+import Share from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -37,10 +37,7 @@ import { useNavigate } from "react-router-dom";
 import { OpenInNew } from "@mui/icons-material";
 import { authApi } from "../../api/auth.api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-/* ------------------------------------------------------------------ */
-/* Theme — same tokens as the rest of the Sketch Velvet UI             */
-/* ------------------------------------------------------------------ */
+import toast from "react-hot-toast";
 
 const theme = createTheme({
   palette: {
@@ -97,28 +94,248 @@ const staggerFade = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-
 interface Board {
   id: string;
   title: string;
   updatedAt: string;
-  collaborators: number;
 }
 
-/* ------------------------------------------------------------------ */
-/* Board card                                                          */
-/* ------------------------------------------------------------------ */
+interface owner {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface SharedBoard extends Board {
+  owner: owner;
+}
+
+interface BoardMember {
+  userId: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "EDITOR" | "VIEWER";
+  createdAt?: string;
+}
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: { message?: unknown } } })
+      .response;
+
+    if (typeof response?.data?.message === "string") {
+      return response.data.message;
+    }
+  }
+
+  return error instanceof Error ? error.message : "Something went wrong.";
+}
+
+const ShareBoardDialog = ({
+  boardId,
+  onClose,
+}: {
+  boardId: string | null;
+  onClose: () => void;
+}) => {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = React.useState("");
+  const [role, setRole] = React.useState<"EDITOR" | "VIEWER">("EDITOR");
+
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ["boards", boardId, "members"],
+    queryFn: () => boardApi.getMembers(boardId!),
+    enabled: Boolean(boardId),
+    select: ({ data }) => data.members as BoardMember[],
+  });
+
+  const addMemberMutation = useMutation({
+    mutationFn: ({ email, role }: { email: string; role: "EDITOR" }) =>
+      boardApi.share(boardId!, email, role),
+    onSuccess: () => {
+      setEmail("");
+      queryClient.invalidateQueries({
+        queryKey: ["boards", boardId, "members"],
+      });
+      toast.success("Collaborator added successfully.");
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => boardApi.removeMember(boardId!, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["boards", boardId, "members"],
+      });
+      toast.success("Collaborator removed successfully.");
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  const handleAddMember = () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      toast.error("Enter an email address.");
+      return;
+    }
+
+    if (role === "VIEWER") {
+      toast.error("Viewer access is not available yet.");
+      return;
+    }
+
+    addMemberMutation.mutate({ email: trimmedEmail, role });
+  };
+
+  const formatAccessDate = (createdAt?: string) =>
+    createdAt ? new Date(createdAt).toLocaleDateString() : "Not available";
+
+  return (
+    <Dialog
+      open={Boolean(boardId)}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      slotProps={{
+        paper: {
+          sx: {
+            bgcolor: "background.paper",
+            borderRadius: "20px",
+            border: `1px solid ${border}`,
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 700, fontSize: 22 }}>
+        Share board
+      </DialogTitle>
+      <DialogContent dividers sx={{ borderColor: border }}>
+        <Typography sx={{ color: "text.secondary", fontSize: 14, mb: 2 }}>
+          Invite collaborators to work on this board.
+        </Typography>
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+          <TextField
+            label="Email address"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            fullWidth
+            size="small"
+          />
+          <TextField
+            select
+            label="Access"
+            value={role}
+            onChange={(event) =>
+              setRole(event.target.value as "EDITOR" | "VIEWER")
+            }
+            size="small"
+            sx={{ minWidth: 130 }}
+          >
+            <MenuItem value="EDITOR">Editor</MenuItem>
+            <MenuItem value="VIEWER">Viewer (soon)</MenuItem>
+          </TextField>
+          <Button
+            variant="contained"
+            onClick={handleAddMember}
+            disabled={addMemberMutation.isPending}
+            sx={{ background: gradient, whiteSpace: "nowrap" }}
+          >
+            {addMemberMutation.isPending ? "Adding..." : "Add"}
+          </Button>
+        </Stack>
+
+        <Typography sx={{ fontWeight: 600, mt: 3, mb: 1.2 }}>
+          People with access
+        </Typography>
+
+        <Stack spacing={1}>
+          {isLoading ? (
+            <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
+              Loading members...
+            </Typography>
+          ) : (
+            members.map((member) => (
+              <Stack
+                key={member.userId}
+                direction="row"
+                spacing={1.2}
+                sx={{
+                  p: 1.2,
+                  border: `1px solid ${border}`,
+                  borderRadius: "12px",
+                  alignItems: "center",
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    bgcolor: "primary.main",
+                    fontSize: 13,
+                  }}
+                >
+                  {member.name.slice(0, 1).toUpperCase()}
+                </Avatar>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography noWrap sx={{ fontSize: 14, fontWeight: 600 }}>
+                    {member.name}
+                  </Typography>
+                  <Typography
+                    noWrap
+                    sx={{ color: "text.secondary", fontSize: 12.5 }}
+                  >
+                    {member.email}
+                  </Typography>
+                  <Typography
+                    sx={{ color: "text.secondary", fontSize: 11.5, mt: 0.3 }}
+                  >
+                    {member.role.toLowerCase()} · Access since{" "}
+                    {formatAccessDate(member.createdAt)}
+                  </Typography>
+                </Box>
+                {member.role !== "OWNER" && (
+                  <Button
+                    color="error"
+                    size="small"
+                    onClick={() => removeMemberMutation.mutate(member.userId)}
+                    disabled={removeMemberMutation.isPending}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </Stack>
+            ))
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} sx={{ color: "text.secondary" }}>
+          Done
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 
 const BoardCard = ({
   board,
   index,
   onDelete,
   onRename,
+  onShare,
 }: {
-  board: Board;
+  board: SharedBoard;
   index: number;
   onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
+  onShare: (id: string) => void;
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -126,7 +343,8 @@ const BoardCard = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const open = Boolean(anchorEl);
 
-  const startRename = () => {
+  const startRename = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
+    e.preventDefault();
     setDraftName(board.title);
     setIsEditing(true);
     setAnchorEl(null);
@@ -151,9 +369,6 @@ const BoardCard = ({
     setAnchorEl(null);
     onDelete(id);
   };
-
-  // const shareBoard = async (id: string) => {
-  // };
 
   const updatedAt = new Date(board.updatedAt).toLocaleDateString();
 
@@ -213,7 +428,7 @@ const BoardCard = ({
               noWrap
               onDoubleClick={(e) => {
                 e.stopPropagation();
-                startRename();
+                startRename(e);
               }}
               sx={{ fontWeight: 600, fontSize: 15 }}
             >
@@ -292,22 +507,30 @@ const BoardCard = ({
           <ListItemText>Open</ListItemText>
         </MenuItem>
 
-        {/* <MenuItem onClick={()=>shareBoard(board.id)} sx={{ fontSize: 14, gap: 0 }}>
-          <ListItemIcon>
-            <Share fontSize="small" sx={{ color: "text.secondary" }} />
-          </ListItemIcon>
-          <ListItemText>Share</ListItemText>
-        </MenuItem> */}
-
-        <MenuItem onClick={startRename} sx={{ fontSize: 14, gap: 0 }}>
+        <MenuItem onClick={(e) => startRename(e)} sx={{ fontSize: 14, gap: 0 }}>
           <ListItemIcon>
             <DriveFileRenameOutlineIcon
               fontSize="small"
               sx={{ color: "text.secondary" }}
             />
           </ListItemIcon>
-          <ListItemText>Share</ListItemText>
+          <ListItemText>Rename</ListItemText>
         </MenuItem>
+
+        {!board.owner && (
+          <MenuItem
+            onClick={() => {
+              setAnchorEl(null);
+              onShare(board.id);
+            }}
+            sx={{ fontSize: 14, gap: 0 }}
+          >
+            <ListItemIcon>
+              <Share fontSize="small" sx={{ color: "text.secondary" }} />
+            </ListItemIcon>
+            <ListItemText>Share</ListItemText>
+          </MenuItem>
+        )}
 
         <Divider sx={{ borderColor: border, my: 0.5 }} />
         <MenuItem
@@ -324,9 +547,6 @@ const BoardCard = ({
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Create-new-board card                                               */
-/* ------------------------------------------------------------------ */
 
 const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
   <Box
@@ -376,9 +596,6 @@ const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
   </Box>
 );
 
-/* ------------------------------------------------------------------ */
-/* Top bar — logo, search, new board button, avatar menu               */
-/* ------------------------------------------------------------------ */
 
 const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -416,7 +633,15 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
       }}
     >
       <Stack direction="row" sx={{ px: { xs: 2.5, md: 4 }, py: 1.8 }}>
-        <Stack direction="row" spacing={1.2} style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+        <Stack
+          direction="row"
+          spacing={1.2}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Box
             sx={{
               width: 30,
@@ -424,8 +649,8 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
               borderRadius: "8px",
               background: gradient,
               display: "flex",
-              alignItems:"center",
-              justifyContent:"center"
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <Box
@@ -578,19 +803,20 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Page                                                                 */
-/* ------------------------------------------------------------------ */
 
 const Dashboard = () => {
   const [openCreateDialog, setOpenCreateDialog] = React.useState(false);
   const [boardName, setBoardName] = React.useState("");
+  const [sharedBoardId, setSharedBoardId] = React.useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: boardList = [] } = useQuery({
     queryKey: ["boards"],
     queryFn: boardApi.getAll,
-    select: ({ data }) => data.boards.ownedBoards as Board[],
+    select: ({ data }) => [
+      ...data.boards.ownedBoards,
+      ...data.boards.sharedBoards,
+    ],
   });
 
   const createBoardMutation = useMutation({
@@ -626,6 +852,10 @@ const Dashboard = () => {
 
   return (
     <ThemeProvider theme={theme}>
+      <ShareBoardDialog
+        boardId={sharedBoardId}
+        onClose={() => setSharedBoardId(null)}
+      />
       <Dialog
         open={openCreateDialog}
         onClose={() => setOpenCreateDialog(false)}
@@ -754,13 +984,14 @@ const Dashboard = () => {
             }}
           >
             <CreateBoardCard onClick={handleCreate} />
-            {boardList.map((board, i) => (
+            {boardList.map((board: SharedBoard, i: number) => (
               <BoardCard
                 key={board.id}
                 board={board}
                 index={i + 1}
                 onRename={handleRename}
                 onDelete={handleDelete}
+                onShare={setSharedBoardId}
               />
             ))}
           </Box>
