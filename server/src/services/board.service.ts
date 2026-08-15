@@ -218,7 +218,6 @@ export async function getBoardMembers(boardId: string, userId: string) {
           email: true,
         },
       },
-      
     },
     orderBy: {
       role: "asc",
@@ -230,6 +229,7 @@ export async function getBoardMembers(boardId: string, userId: string) {
     name: member.user.name,
     email: member.user.email,
     role: member.role,
+    createdAt: member.createdAt,
   }));
 }
 

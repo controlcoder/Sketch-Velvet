@@ -315,14 +315,19 @@ const ShareBoardDialog = ({
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ color: "text.secondary" }}>
+        <Button
+          onClick={() => {
+            setEmail("");
+            onClose();
+          }}
+          sx={{ color: "text.secondary" }}
+        >
           Done
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
-
 
 const BoardCard = ({
   board,
@@ -547,7 +552,6 @@ const BoardCard = ({
   );
 };
 
-
 const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
   <Box
     onClick={onClick}
@@ -595,7 +599,6 @@ const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
     </Typography>
   </Box>
 );
-
 
 const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -802,7 +805,6 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
     </Box>
   );
 };
-
 
 const Dashboard = () => {
   const [openCreateDialog, setOpenCreateDialog] = React.useState(false);
