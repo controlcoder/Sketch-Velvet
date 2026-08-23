@@ -31,5 +31,5 @@ export function useAutosave({ boardId, elements, camera }: UseAutosaveProps) {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [autosaveMutation, boardId, elements, camera]);
+  }, [boardId, elements, camera]);
 }

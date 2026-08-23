@@ -15,7 +15,7 @@ import {
   ListItemText,
   Divider,
   TextField,
-  // InputAdornment,
+  InputAdornment,
   DialogContent,
   Dialog,
   DialogTitle,
@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import AddIcon from "@mui/icons-material/Add";
-// import SearchIcon from "@mui/icons-material/Search";
+import SearchIcon from "@mui/icons-material/Search";
 import Share from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
@@ -117,6 +117,8 @@ interface BoardMember {
   role: "OWNER" | "EDITOR" | "VIEWER";
   createdAt?: string;
 }
+
+// const accents = ["#6965DB", "#8B88F8", "#4F46E5"];
 
 function getErrorMessage(error: unknown) {
   if (typeof error === "object" && error !== null && "response" in error) {
@@ -600,7 +602,13 @@ const CreateBoardCard = ({ onClick }: { onClick?: () => void }) => (
   </Box>
 );
 
-const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
+const TopBar = ({
+  search,
+  setSearch,
+}: {
+  search: string;
+  setSearch: React.Dispatch<React.SetStateAction<string>>;
+}) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -635,7 +643,15 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
         borderBottom: `1px solid ${border}`,
       }}
     >
-      <Stack direction="row" sx={{ px: { xs: 2.5, md: 4 }, py: 1.8 }}>
+      <Stack
+        direction="row"
+        sx={{
+          px: { xs: 2.5, md: 4 },
+          py: 1.8,
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <Stack
           direction="row"
           spacing={1.2}
@@ -676,8 +692,10 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
           </Typography>
         </Stack>
 
-        {/* <TextField
+        <TextField
           placeholder="Search boards..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           size="small"
           sx={{
             display: { xs: "none", md: "block" },
@@ -703,40 +721,13 @@ const TopBar = ({ onCreate }: { onCreate?: () => void }) => {
               ),
             },
           }}
-        /> */}
+        />
 
-        <Stack direction="row" spacing={2}>
-          {/* <Button
-            onClick={onCreate}
-            startIcon={<AddIcon sx={{ fontSize: 18 }} />}
-            disableElevation
-            sx={{
-              display: { xs: "none", sm: "inline-flex" },
-              background: gradient,
-              color: "#fff",
-              px: 2.2,
-              py: 0.9,
-              fontSize: 14,
-              "&:hover": {
-                background: gradient,
-                filter: "brightness(1.1)",
-                transform: "translateY(-1px)",
-              },
-            }}
-          >
-            New Board
-          </Button> */}
-
-          <IconButton
-            onClick={onCreate}
-            sx={{
-              display: { xs: "inline-flex", sm: "none" },
-              color: "primary.light",
-            }}
-          >
-            <AddIcon />
-          </IconButton>
-
+        <Stack
+          direction="row"
+          spacing={2}
+          style={{ display: "flex", alignItems: "center", gap: "1rem" }}
+        >
           <IconButton
             onClick={(e) => setAnchorEl(e.currentTarget)}
             sx={{ p: 0.3 }}
@@ -810,16 +801,30 @@ const Dashboard = () => {
   const [openCreateDialog, setOpenCreateDialog] = React.useState(false);
   const [boardName, setBoardName] = React.useState("");
   const [sharedBoardId, setSharedBoardId] = React.useState<string | null>(null);
+  const [boardView, setBoardView] = React.useState<"owned" | "shared">("owned");
   const queryClient = useQueryClient();
 
-  const { data: boardList = [] } = useQuery({
+  const { data: boards = { ownedBoards: [], sharedBoards: [] } } = useQuery({
     queryKey: ["boards"],
     queryFn: boardApi.getAll,
-    select: ({ data }) => [
-      ...data.boards.ownedBoards,
-      ...data.boards.sharedBoards,
-    ],
+    select: ({ data }) => data.boards,
   });
+
+  const [search, setSearch] = React.useState("");
+  const filteredOwnedBoards = React.useMemo(() => {
+    return boards?.ownedBoards.filter((board: Board) =>
+      board.title.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [boards?.ownedBoards, search]);
+
+  const filteredSharedBoards = React.useMemo(() => {
+    return boards?.sharedBoards.filter((board: Board) =>
+      board.title.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [boards?.sharedBoards, search]);
+
+  const boardList =
+    boardView === "owned" ? filteredOwnedBoards : filteredSharedBoards;
 
   const createBoardMutation = useMutation({
     mutationFn: boardApi.create,
@@ -948,7 +953,7 @@ const Dashboard = () => {
 
       <CssBaseline />
       <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-        <TopBar onCreate={handleCreate} />
+        <TopBar search={search} setSearch={setSearch} />
 
         <Box
           sx={{
@@ -959,17 +964,71 @@ const Dashboard = () => {
             animation: `${fadeIn} 500ms ease both`,
           }}
         >
-          <Stack direction="row" sx={{ mb: 3.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{
+              mb: 3.5,
+              justifyContent: "space-between",
+              alignItems: { sm: "center" },
+            }}
+          >
             <Box>
               <Typography
                 sx={{ fontWeight: 700, fontSize: { xs: 24, md: 28 }, mb: 0.5 }}
               >
-                Your Boards
+                My Boards
               </Typography>
               <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
                 {boardList.length || 0} board{boardList.length > 1 ? "s" : ""} ·
                 pick up where you left off
               </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "inline-flex",
+                p: 0.5,
+                gap: 0.5,
+                border: `1px solid ${border}`,
+                borderRadius: "12px",
+                bgcolor: "background.paper",
+              }}
+            >
+              <Button
+                size="small"
+                onClick={() => setBoardView("owned")}
+                sx={{
+                  px: 1.5,
+                  color: boardView === "owned" ? "#fff" : "text.secondary",
+                  background: boardView === "owned" ? gradient : "transparent",
+                  "&:hover": {
+                    background:
+                      boardView === "owned"
+                        ? gradient
+                        : "rgba(255,255,255,0.05)",
+                  },
+                }}
+              >
+                Owned Boards ({filteredOwnedBoards.length})
+              </Button>
+              <Button
+                size="small"
+                onClick={() => setBoardView("shared")}
+                sx={{
+                  px: 1.5,
+                  color: boardView === "shared" ? "#fff" : "text.secondary",
+                  background: boardView === "shared" ? gradient : "transparent",
+                  "&:hover": {
+                    background:
+                      boardView === "shared"
+                        ? gradient
+                        : "rgba(255,255,255,0.05)",
+                  },
+                }}
+              >
+                Shared Boards ({filteredSharedBoards.length})
+              </Button>
             </Box>
           </Stack>
 
@@ -985,7 +1044,9 @@ const Dashboard = () => {
               gap: 2.5,
             }}
           >
-            <CreateBoardCard onClick={handleCreate} />
+            {boardView === "owned" && (
+              <CreateBoardCard onClick={handleCreate} />
+            )}
             {boardList.map((board: SharedBoard, i: number) => (
               <BoardCard
                 key={board.id}
