@@ -28,7 +28,6 @@ import Share from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
-import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { boardApi } from "../../api/board.api";
@@ -84,7 +83,6 @@ const border = "#2C2C35";
 const placeholder = "#6B7280";
 const softShadow = "0 20px 50px rgba(0,0,0,0.25)";
 const gradient = "linear-gradient(135deg, #6965DB 0%, #4F46E5 100%)";
-// const dotGrid = "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)";
 
 const fadeIn = keyframes`
   from { opacity: 0; } to { opacity: 1; }
@@ -98,6 +96,7 @@ interface Board {
   id: string;
   title: string;
   updatedAt: string;
+  sharedMembers: number;
 }
 
 interface owner {
@@ -110,15 +109,15 @@ interface SharedBoard extends Board {
   owner: owner;
 }
 
+export type Role = "EDITOR" | "VIEWER";
+
 interface BoardMember {
   userId: string;
   name: string;
   email: string;
-  role: "OWNER" | "EDITOR" | "VIEWER";
+  role: "OWNER" | Role;
   createdAt?: string;
 }
-
-// const accents = ["#6965DB", "#8B88F8", "#4F46E5"];
 
 function getErrorMessage(error: unknown) {
   if (typeof error === "object" && error !== null && "response" in error) {
@@ -142,7 +141,7 @@ const ShareBoardDialog = ({
 }) => {
   const queryClient = useQueryClient();
   const [email, setEmail] = React.useState("");
-  const [role, setRole] = React.useState<"EDITOR" | "VIEWER">("EDITOR");
+  const [role, setRole] = React.useState<Role>("VIEWER");
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["boards", boardId, "members"],
@@ -152,7 +151,7 @@ const ShareBoardDialog = ({
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: ({ email, role }: { email: string; role: "EDITOR" }) =>
+    mutationFn: ({ email, role }: { email: string; role: Role }) =>
       boardApi.share(boardId!, email, role),
     onSuccess: () => {
       setEmail("");
@@ -182,11 +181,6 @@ const ShareBoardDialog = ({
 
     if (!trimmedEmail) {
       toast.error("Enter an email address.");
-      return;
-    }
-
-    if (role === "VIEWER") {
-      toast.error("Viewer access is not available yet.");
       return;
     }
 
@@ -233,14 +227,12 @@ const ShareBoardDialog = ({
             select
             label="Access"
             value={role}
-            onChange={(event) =>
-              setRole(event.target.value as "EDITOR" | "VIEWER")
-            }
+            onChange={(event) => setRole(event.target.value as Role)}
             size="small"
             sx={{ minWidth: 130 }}
           >
             <MenuItem value="EDITOR">Editor</MenuItem>
-            <MenuItem value="VIEWER">Viewer (soon)</MenuItem>
+            <MenuItem value="VIEWER">Viewer</MenuItem>
           </TextField>
           <Button
             variant="contained"
@@ -331,18 +323,73 @@ const ShareBoardDialog = ({
   );
 };
 
+const BoardThumbnail = () => (
+  <Box
+    sx={{
+      position: "relative",
+      height: 128,
+      borderRadius: "12px",
+      border: `1px solid ${border}`,
+      bgcolor: "#131316",
+      backgroundImage:
+        "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)",
+      backgroundSize: "16px 16px",
+      overflow: "hidden",
+      mb: 2,
+    }}
+  >
+    <Box
+      sx={{
+        position: "absolute",
+        top: -30,
+        right: -20,
+        width: 110,
+        height: 110,
+        borderRadius: "50%",
+        background: `radial-gradient(closest-side, ${"#6965DB"}33, transparent)`,
+        filter: "blur(10px)",
+      }}
+    />
+    <Box
+      sx={{
+        position: "absolute",
+        top: "28%",
+        left: "14%",
+        width: 54,
+        height: 36,
+        borderRadius: "7px",
+        border: `2px solid ${"#6965DB"}`,
+      }}
+    />
+    <Box
+      sx={{
+        position: "absolute",
+        top: "38%",
+        left: "52%",
+        width: 44,
+        height: 44,
+        borderRadius: "50%",
+        border: `2px solid ${"#6965DB"}`,
+        opacity: 0.7,
+      }}
+    />
+  </Box>
+);
+
 const BoardCard = ({
   board,
   index,
   onDelete,
   onRename,
   onShare,
+  sharedMembers,
 }: {
   board: SharedBoard;
   index: number;
   onDelete: (id: string) => void;
   onRename: (id: string, newName: string) => void;
   onShare: (id: string) => void;
+  sharedMembers: number;
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -398,6 +445,8 @@ const BoardCard = ({
         },
       }}
     >
+      <BoardThumbnail />
+
       <Stack direction="row">
         <Box sx={{ minWidth: 0, flex: 1 }}>
           {isEditing ? (
@@ -462,27 +511,24 @@ const BoardCard = ({
         </IconButton>
       </Stack>
 
-      {/* collaborator avatars */}
-      {/* {board.collaborators > 0 && (
+      {sharedMembers > 0 && (
         <Stack direction="row" sx={{ mt: 1.5 }}>
-          {Array.from({ length: Math.min(board.collaborators, 3) }).map(
-            (_, i) => (
-              <Avatar
-                key={i}
-                sx={{
-                  width: 22,
-                  height: 22,
-                  fontSize: 10,
-                  bgcolor: "#8B88F8",
-                  border: "2px solid #1A1A1F",
-                  ml: i === 0 ? 0 : -0.8,
-                }}
-              >
-                {" "}
-              </Avatar>
-            ),
-          )}
-          {board.collaborators > 3 && (
+          {Array.from({ length: Math.min(sharedMembers, 3) }).map((_, i) => (
+            <Avatar
+              key={i}
+              sx={{
+                width: 22,
+                height: 22,
+                fontSize: 10,
+                bgcolor: "#8B88F8",
+                border: "2px solid #1A1A1F",
+                ml: i === 0 ? 0 : -0.8,
+              }}
+            >
+              {" "}
+            </Avatar>
+          ))}
+          {sharedMembers > 3 && (
             <Typography
               sx={{
                 fontSize: 11.5,
@@ -491,11 +537,11 @@ const BoardCard = ({
                 alignSelf: "center",
               }}
             >
-              +{board.collaborators - 3}
+              +{sharedMembers - 3}
             </Typography>
           )}
         </Stack>
-      )} */}
+      )}
 
       <Menu
         anchorEl={anchorEl}
@@ -512,16 +558,6 @@ const BoardCard = ({
             <OpenInNew fontSize="small" sx={{ color: "text.secondary" }} />
           </ListItemIcon>
           <ListItemText>Open</ListItemText>
-        </MenuItem>
-
-        <MenuItem onClick={(e) => startRename(e)} sx={{ fontSize: 14, gap: 0 }}>
-          <ListItemIcon>
-            <DriveFileRenameOutlineIcon
-              fontSize="small"
-              sx={{ color: "text.secondary" }}
-            />
-          </ListItemIcon>
-          <ListItemText>Rename</ListItemText>
         </MenuItem>
 
         {!board.owner && (
@@ -1042,6 +1078,7 @@ const Dashboard = () => {
                 lg: "repeat(4, 1fr)",
               },
               gap: 2.5,
+              gridAutoRows: "250px",
             }}
           >
             {boardView === "owned" && (
@@ -1051,6 +1088,7 @@ const Dashboard = () => {
               <BoardCard
                 key={board.id}
                 board={board}
+                sharedMembers={board.sharedMembers}
                 index={i + 1}
                 onRename={handleRename}
                 onDelete={handleDelete}

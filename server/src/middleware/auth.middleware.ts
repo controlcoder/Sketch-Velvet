@@ -14,11 +14,10 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = verifyToken(token);
-
     req.user = payload as JwtPayload;
-
     next();
   } catch {
+    res.clearCookie("token");
     return res.status(401).json({
       success: false,
       message: "Invalid token",

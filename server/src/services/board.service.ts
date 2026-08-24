@@ -64,6 +64,11 @@ export async function getBoards(userId: string) {
               email: true,
             },
           },
+          members:{
+            select:{
+              user: true
+            }
+          }
         },
       },
     },
@@ -81,10 +86,11 @@ export async function getBoards(userId: string) {
       title: board.title,
       createdAt: board.createdAt,
       updatedAt: board.updatedAt,
+      sharedMembers: board.members.length
     }));
 
   const sharedBoards = memberships
-    .filter((member) => member.role === "EDITOR")
+    .filter((member) => member.role === "EDITOR" || member.role === "VIEWER")
     .map(({ board, role }) => ({
       id: board.id,
       title: board.title,
@@ -96,6 +102,7 @@ export async function getBoards(userId: string) {
         name: board.owner.name,
         email: board.owner.email,
       },
+      sharedMembers: board.members.length,
     }));
 
   return {

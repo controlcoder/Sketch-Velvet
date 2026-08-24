@@ -1,3 +1,4 @@
+import type { Role } from "../pages/Dashboard/Dashboard";
 import { api } from "./axios";
 
 const baseURL = `/api/boards`;
@@ -25,7 +26,7 @@ export const boardApi = {
     return api.delete(`${baseURL}/${boardId}`);
   },
 
-  share(boardId: string, email: string, role: "EDITOR") {
+  share(boardId: string, email: string, role: Role) {
     return api.post(`${baseURL}/${boardId}/share`, { email, role });
   },
 

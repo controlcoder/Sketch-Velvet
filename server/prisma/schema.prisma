@@ -37,6 +37,7 @@ model Board {
 enum BoardRole {
   OWNER
   EDITOR
+  VIEWER
 }
 
 model BoardMember {
@@ -45,7 +46,7 @@ model BoardMember {
   board   Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
   userId  String
   user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role    BoardRole @default(EDITOR)
+  role    BoardRole @default(VIEWER)
 
   @@unique([boardId, userId])
   @@index([boardId])
