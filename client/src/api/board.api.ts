@@ -37,4 +37,10 @@ export const boardApi = {
   removeMember(boardId: string, userId: string) {
     return api.delete(`${baseURL}/${boardId}/members/${userId}`);
   },
+
+  getRole(boardId: string) {
+    return api
+      .get(`${baseURL}/${boardId}`)
+      .then(({ data }) => data.board.role as string);
+  },
 };

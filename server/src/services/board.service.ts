@@ -114,13 +114,13 @@ export async function getBoards(userId: string) {
 export async function getBoard(boardId: string, userId: string) {
   const board = await findBoardById(boardId);
 
-  const allowed = await permissionService.canView(boardId, userId);
+  const membership = await permissionService.getMembership(boardId, userId);
 
-  if (!allowed) {
+  if (!membership) {
     throw new AppError("You don't have permission to view this board", 403);
   }
 
-  return board;
+  return { ...board, role: membership.role };
 }
 
 export async function updateBoard(

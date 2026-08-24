@@ -8,15 +8,18 @@ interface UseDeleteShortcutProps {
   setElementsWithHistory: (
     updater: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[]),
   ) => void;
+  disabled?: boolean;
 }
 
 export function useDeleteShortcut({
   selectedElementId,
   setSelectedElementId,
   setElementsWithHistory,
+  disabled,
 }: UseDeleteShortcutProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (disabled) return;
       if (e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key !== "Delete" && e.key !== "Backspace") {
@@ -39,5 +42,6 @@ export function useDeleteShortcut({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedElementId, setSelectedElementId, setElementsWithHistory]);
+  }, [selectedElementId, setSelectedElementId, setElementsWithHistory, disabled]);
 }
+

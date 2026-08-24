@@ -54,6 +54,8 @@ export default function Canvas() {
 
   const resizeHandle = useRef<ResizeHandle | null>(null);
 
+  const { isViewer } = useSavedElements({ boardId, setElements, setCamera });
+
   const {
     undo,
     redo,
@@ -140,6 +142,9 @@ export default function Canvas() {
 
       return;
     }
+
+    // Viewers can only pan (middle-click above), block everything else
+    if (isViewer) return;
 
     if (textEditor) {
       return;
@@ -237,6 +242,12 @@ export default function Canvas() {
       return;
     }
 
+    // Viewers: only allow panning (handled above), set default cursor
+    if (isViewer) {
+      e.currentTarget.style.cursor = "default";
+      return;
+    }
+
     const { x, y } = getCanvasCoordinates(e);
 
     if (resizingElementId) {
@@ -322,6 +333,9 @@ export default function Canvas() {
   const handleMouseUp = () => {
     isPanning.current = false;
 
+    // Viewers: only panning cleanup (above), skip all editing
+    if (isViewer) return;
+
     if (resizingElementId) {
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
@@ -360,7 +374,7 @@ export default function Canvas() {
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
-  useKeyboardShortcuts({ undo, redo, setZoomIn, setZoomOut, resetZoom });
+  useKeyboardShortcuts({ undo, redo, setZoomIn, setZoomOut, resetZoom, disabled: isViewer });
 
   useCanvasSize(canvasRef);
 
@@ -370,44 +384,48 @@ export default function Canvas() {
     selectedElementId,
     setSelectedElementId,
     setElementsWithHistory,
+    disabled: isViewer,
   });
-
-  useSavedElements({ boardId, setElements, setCamera });
 
   useAutosave({
     boardId,
     elements,
     camera,
+    isViewer,
   });
 
   return (
     <>
-      <Toolbar
-        tool={tool}
-        setTool={setTool}
-        strokeColor={strokeColor}
-        setStrokeColor={setStrokeColor}
-      />
+      {!isViewer && (
+        <Toolbar
+          tool={tool}
+          setTool={setTool}
+          strokeColor={strokeColor}
+          setStrokeColor={setStrokeColor}
+        />
+      )}
 
-      <TextEditor
-        textEditor={textEditor}
-        setTextEditor={setTextEditor}
-        camera={camera}
-        strokeColor={strokeColor}
-        onSave={(text, x, y) => {
-          const textElement: CanvasElement = {
-            id: crypto.randomUUID(),
-            type: "text",
-            x,
-            y,
-            text,
-            fontSize: 20,
-            stroke: strokeColor,
-          };
-          setElementsWithHistory((prev) => [...prev, textElement]);
-          setTool("select");
-        }}
-      />
+      {!isViewer && (
+        <TextEditor
+          textEditor={textEditor}
+          setTextEditor={setTextEditor}
+          camera={camera}
+          strokeColor={strokeColor}
+          onSave={(text, x, y) => {
+            const textElement: CanvasElement = {
+              id: crypto.randomUUID(),
+              type: "text",
+              x,
+              y,
+              text,
+              fontSize: 20,
+              stroke: strokeColor,
+            };
+            setElementsWithHistory((prev) => [...prev, textElement]);
+            setTool("select");
+          }}
+        />
+      )}
 
       <canvas
         ref={canvasRef}
@@ -421,15 +439,19 @@ export default function Canvas() {
           height: "100vh",
           display: "block",
         }}
-        onDoubleClick={() => setTool("select")}
+        onDoubleClick={() => {
+          if (!isViewer) setTool("select");
+        }}
       />
 
-      <HistoryPanel
-        undo={undo}
-        redo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-      />
+      {!isViewer && (
+        <HistoryPanel
+          undo={undo}
+          redo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
+      )}
 
       <ZoomControls
         zoom={camera.zoom}
@@ -437,6 +459,46 @@ export default function Canvas() {
         onZoomOut={setZoomOut}
         onReset={resetZoom}
       />
+
+      {isViewer && (
+        <div
+          style={{
+            position: "fixed",
+            top: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "linear-gradient(135deg, #6965DB 0%, #4F46E5 100%)",
+            color: "#fff",
+            padding: "8px 24px",
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+            letterSpacing: "0.02em",
+            boxShadow: "0 4px 20px rgba(105, 101, 219, 0.35)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            userSelect: "none",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          View only
+        </div>
+      )}
     </>
   );
 }

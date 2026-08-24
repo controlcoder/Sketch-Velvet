@@ -6,6 +6,7 @@ interface Props {
   setZoomIn: () => void;
   setZoomOut: () => void;
   resetZoom: () => void;
+  disabled?: boolean;
 }
 
 export function useKeyboardShortcuts({
@@ -14,6 +15,7 @@ export function useKeyboardShortcuts({
   setZoomIn,
   setZoomOut,
   resetZoom,
+  disabled,
 }: Props) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -21,13 +23,13 @@ export function useKeyboardShortcuts({
 
       const isModifier = e.ctrlKey || e.metaKey;
 
-      if (isModifier && e.key === "z") {
+      if (!disabled && isModifier && e.key === "z") {
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();
       }
 
-      if (isModifier && e.key === "y") {
+      if (!disabled && isModifier && e.key === "y") {
         e.preventDefault();
         redo();
       }
@@ -52,5 +54,6 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, disabled]);
 }
+

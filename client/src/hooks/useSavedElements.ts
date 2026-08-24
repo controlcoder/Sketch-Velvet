@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { boardApi } from "../api/board.api";
 import type { Camera, CanvasElement } from "../components/Canvas/types";
 
@@ -13,9 +13,12 @@ export function useSavedElements({
   setElements,
   setCamera,
 }: UseSavedElementsProps) {
+  const [role, setRole] = useState<string | null>(null);
+
   const getBoardInfo = async () => {
     if (!boardId) return;
     const { data } = await boardApi.get(boardId);
+    setRole(data.board.role || null);
     setElements(data.board.elements);
     setCamera(data.board.viewport);
   };
@@ -23,4 +26,8 @@ export function useSavedElements({
   useEffect(() => {
     getBoardInfo();
   }, []);
+
+  return {
+    isViewer: role === "VIEWER",
+  };
 }

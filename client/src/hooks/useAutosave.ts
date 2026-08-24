@@ -8,15 +8,16 @@ interface UseAutosaveProps {
   boardId: string;
   elements: CanvasElement[];
   camera: Camera;
+  isViewer?: boolean;
 }
 
-export function useAutosave({ boardId, elements, camera }: UseAutosaveProps) {
+export function useAutosave({ boardId, elements, camera, isViewer }: UseAutosaveProps) {
   const autosaveMutation = useMutation({
     mutationFn: ({
       boardId,
       elements,
       camera,
-    }: UseAutosaveProps) =>
+    }: Omit<UseAutosaveProps, "isViewer">) =>
       boardApi.update(boardId, { elements, viewport: camera }),
     onError: (error) => {
       console.error("Failed to save board", error);
@@ -24,7 +25,7 @@ export function useAutosave({ boardId, elements, camera }: UseAutosaveProps) {
   });
 
   useEffect(() => {
-    if (!boardId) return;
+    if (!boardId || isViewer) return;
 
     const timeout = setTimeout(() => {
       autosaveMutation.mutate({ boardId, elements, camera });
@@ -33,3 +34,4 @@ export function useAutosave({ boardId, elements, camera }: UseAutosaveProps) {
     return () => clearTimeout(timeout);
   }, [boardId, elements, camera]);
 }
+
