@@ -24,8 +24,7 @@ import NorthEastIcon from "@mui/icons-material/NorthEast";
 import TitleIcon from "@mui/icons-material/Title";
 import { authApi } from "../../api/auth.api";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 function getErrorMessage(error: unknown) {
@@ -387,19 +386,23 @@ const HeroSection = () => (
 const AuthCard = () => {
   const navigate = useNavigate();
 
-  const { setUser } = useAuth();
-
   const [showPassword, setShowPassword] = React.useState(false);
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
+  const queryClient = useQueryClient();
+
   const loginMutation = useMutation({
     mutationFn: authApi.login,
     onSuccess: ({ data }) => {
       if (data.success) {
-        setUser(data.user);
-        toast.success("Welcome back!");
+        queryClient.setQueryData(["auth", "me"], {
+          data: {
+            user: data.user,
+          },
+        });
+
         navigate("/dashboard");
       } else {
         toast.error(data.message ?? "Unable to log in.");

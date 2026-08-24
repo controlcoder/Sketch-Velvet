@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authApi } from "../api/auth.api";
 
@@ -10,7 +10,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   loading: boolean;
   checkAuth: () => Promise<void>;
 }
@@ -18,7 +17,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const {
     data: authResponse,
     isError,
@@ -30,13 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     retry: false,
   });
 
-  useEffect(() => {
-    if (authResponse?.data.user) {
-      setUser(authResponse.data.user);
-    } else if (isError) {
-      setUser(null);
-    }
-  }, [authResponse, isError]);
+  const user = isError ? null : (authResponse?.data?.user ?? null);
 
   async function checkAuth() {
     await refetch();
@@ -46,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        setUser,
         loading: isLoading,
         checkAuth,
       }}

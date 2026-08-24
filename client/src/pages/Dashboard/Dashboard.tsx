@@ -651,13 +651,19 @@ const TopBar = ({
   const { user } = useAuth();
 
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+
+  const queryClient = useQueryClient();
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
     onSuccess: ({ data }: any) => {
       if (data.success) {
-        setUser(null);
+        queryClient.setQueryData(["auth", "me"], {
+          data: {
+            user: null,
+          },
+        });
+
         navigate("/");
       }
     },

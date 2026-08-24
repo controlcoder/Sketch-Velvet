@@ -6,12 +6,6 @@ import { useAuth } from "../../context/AuthContext";
 export default function PublicRoute() {
   const { user, loading } = useAuth();
 
-  console.log("PublicRoute:", {
-    pathname: window.location.pathname,
-    user,
-    loading,
-  });
-
   if (loading) {
     return (
       <Box

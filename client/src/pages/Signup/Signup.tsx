@@ -23,9 +23,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import { authApi } from "../../api/auth.api";
-import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 function getErrorMessage(error: unknown) {
@@ -463,8 +462,6 @@ const StrengthMeter = ({ strength }: { strength: Strength }) => {
 const SignupCard = () => {
   const navigate = useNavigate();
 
-  const { setUser } = useAuth();
-
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -490,11 +487,18 @@ const SignupCard = () => {
         : "error"
     : "default";
 
+  const queryClient = useQueryClient();
+
   const signupMutation = useMutation({
     mutationFn: authApi.signup,
     onSuccess: ({ data }: any) => {
       if (data.success) {
-        setUser(data.user);
+        queryClient.setQueryData(["auth", "me"], {
+          data: {
+            user: data.user,
+          },
+        });
+
         toast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
