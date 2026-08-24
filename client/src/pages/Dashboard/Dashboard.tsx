@@ -664,6 +664,7 @@ const TopBar = ({
           },
         });
 
+        toast.success(data.message);
         navigate("/");
       }
     },

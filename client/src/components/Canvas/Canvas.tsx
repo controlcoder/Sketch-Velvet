@@ -22,6 +22,7 @@ import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
 import { Navigate, useParams } from "react-router-dom";
 import { useAutosave } from "../../hooks/useAutosave";
 import { useSavedElements } from "../../hooks/useSavedElements";
+import { Box, CircularProgress } from "@mui/material";
 
 export default function Canvas() {
   const { id: boardId } = useParams();
@@ -54,7 +55,11 @@ export default function Canvas() {
 
   const resizeHandle = useRef<ResizeHandle | null>(null);
 
-  const { isViewer } = useSavedElements({ boardId, setElements, setCamera });
+  const { isViewer, loading } = useSavedElements({
+    boardId,
+    setElements,
+    setCamera,
+  });
 
   const {
     undo,
@@ -374,7 +379,14 @@ export default function Canvas() {
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
-  useKeyboardShortcuts({ undo, redo, setZoomIn, setZoomOut, resetZoom, disabled: isViewer });
+  useKeyboardShortcuts({
+    undo,
+    redo,
+    setZoomIn,
+    setZoomOut,
+    resetZoom,
+    disabled: isViewer,
+  });
 
   useCanvasSize(canvasRef);
 
@@ -393,6 +405,20 @@ export default function Canvas() {
     camera,
     isViewer,
   });
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          height: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -473,7 +499,8 @@ export default function Canvas() {
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 600,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+            fontFamily:
+              '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
             letterSpacing: "0.02em",
             boxShadow: "0 4px 20px rgba(105, 101, 219, 0.35)",
             zIndex: 1000,

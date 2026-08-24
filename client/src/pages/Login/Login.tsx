@@ -404,6 +404,7 @@ const AuthCard = () => {
         });
 
         navigate("/dashboard");
+        toast.success(data.message);
       } else {
         toast.error(data.message ?? "Unable to log in.");
       }
