@@ -16,7 +16,6 @@ export function useSavedElements({
   setCamera,
 }: UseSavedElementsProps) {
   const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -24,7 +23,6 @@ export function useSavedElements({
     if (!boardId) return;
 
     try {
-      setLoading(true);
       const { data } = await boardApi.get(boardId);
       setRole(data.board.role || null);
       setElements(data.board.elements);
@@ -32,8 +30,6 @@ export function useSavedElements({
     } catch (err) {
       toast.error("Board not found");
       navigate("/dashboard");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -42,7 +38,6 @@ export function useSavedElements({
   }, []);
 
   return {
-    isViewer: role === "VIEWER",
-    loading
+    isViewer: role === "VIEWER"
   };
 }

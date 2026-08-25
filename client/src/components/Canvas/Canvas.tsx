@@ -19,14 +19,11 @@ import { useZoomControls } from "../../hooks/useZoomControls";
 import { getHandleAtPosition } from "../../editing/selection/getHandleAtPosition";
 import { resizeElement } from "../../editing/resize/resizeElement";
 import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAutosave } from "../../hooks/useAutosave";
 import { useSavedElements } from "../../hooks/useSavedElements";
-import { Box, CircularProgress } from "@mui/material";
 
-export default function Canvas() {
-  const { id: boardId } = useParams();
-
+export default function Canvas({ boardId }: { boardId: string | undefined }) {
   if (!boardId) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -55,7 +52,7 @@ export default function Canvas() {
 
   const resizeHandle = useRef<ResizeHandle | null>(null);
 
-  const { isViewer, loading } = useSavedElements({
+  const { isViewer } = useSavedElements({
     boardId,
     setElements,
     setCamera,
@@ -405,20 +402,6 @@ export default function Canvas() {
     camera,
     isViewer,
   });
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <>

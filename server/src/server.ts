@@ -1,12 +1,18 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import http from "http";
 import app from "./app";
+import { createSocketServer } from "./sockets/server";
 import { prisma } from "./config/prisma";
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+
+createSocketServer(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
 });
 
