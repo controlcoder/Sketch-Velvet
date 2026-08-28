@@ -1,17 +1,41 @@
 import type { Server } from "socket.io";
+import * as permissionService from "../services/permission.service";
+import { socketHandler } from "./socket.asyncHandler";
+import { AppError } from "../utils/AppError";
 
 export function registerBoardSocket(io: Server) {
   io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
+    // console.log("Client connected:", socket.id, socket.data.userId);
+  
+    socket.on(
+      "join:board",
+      socketHandler(async ({ boardId }: { boardId: string }) => {
+        const userId = socket.data.userId;
 
-    socket.on("join:board", ({ boardId }) => {
-      socket.join(`board:${boardId}`);
+        const member = await permissionService.getMembership(boardId, userId);
 
-      console.log(`${socket.id} joined board:${boardId}`);
+        if (!member) {
+          throw new AppError("You don't have access to this board", 403);
+        }
+
+        socket.join(`board:${boardId}`);
+
+        // console.log(socket.data.userId, "joined the board");
+
+        return {
+          role: member.role,
+        };
+      }),
+    );
+
+    socket.on("element:create", ({ boardId, element }) => {
+      socket
+        .to(`board:${boardId}`)
+        .emit("element:create", { element, userId: socket.data.userId });
     });
 
     socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
+      // console.log("Client disconnected:", socket.id, socket.data.userId);
     });
   });
 }

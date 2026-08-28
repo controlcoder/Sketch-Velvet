@@ -1,6 +1,7 @@
 import type { Server as HTTPServer } from "http";
 import { Server } from "socket.io";
 import { registerBoardSocket } from "./board.socket";
+import { socketMiddleware } from "./socket.middleware";
 
 export function createSocketServer(httpServer: HTTPServer) {
   const io = new Server(httpServer, {
@@ -9,6 +10,8 @@ export function createSocketServer(httpServer: HTTPServer) {
       credentials: true,
     },
   });
+
+  socketMiddleware(io);
 
   registerBoardSocket(io);
 

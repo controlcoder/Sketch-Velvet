@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import type { CanvasElement } from "../components/Canvas/types";
 import { deleteElement } from "../editing/delete/deleteElement";
 
@@ -9,6 +9,7 @@ interface UseDeleteShortcutProps {
     updater: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[]),
   ) => void;
   disabled?: boolean;
+  isDirtyRef: RefObject<boolean>;
 }
 
 export function useDeleteShortcut({
@@ -16,6 +17,7 @@ export function useDeleteShortcut({
   setSelectedElementId,
   setElementsWithHistory,
   disabled,
+  isDirtyRef
 }: UseDeleteShortcutProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,6 +35,8 @@ export function useDeleteShortcut({
       e.preventDefault();
 
       setElementsWithHistory((prev) => deleteElement(prev, selectedElementId));
+
+      isDirtyRef.current = true;
 
       setSelectedElementId(null);
     };

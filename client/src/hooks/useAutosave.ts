@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import type { Camera, CanvasElement } from "../components/Canvas/types";
@@ -9,15 +9,22 @@ interface UseAutosaveProps {
   elements: CanvasElement[];
   camera: Camera;
   isViewer?: boolean;
+  isDirtyRef: RefObject<boolean>;
 }
 
-export function useAutosave({ boardId, elements, camera, isViewer }: UseAutosaveProps) {
+export function useAutosave({
+  boardId,
+  elements,
+  camera,
+  isViewer,
+  isDirtyRef,
+}: UseAutosaveProps) {
   const autosaveMutation = useMutation({
     mutationFn: ({
       boardId,
       elements,
       camera,
-    }: Omit<UseAutosaveProps, "isViewer">) =>
+    }: Omit<UseAutosaveProps, "isViewer" | "isDirtyRef">) =>
       boardApi.update(boardId, { elements, viewport: camera }),
     onError: (error) => {
       console.error("Failed to save board", error);
@@ -25,13 +32,14 @@ export function useAutosave({ boardId, elements, camera, isViewer }: UseAutosave
   });
 
   useEffect(() => {
-    if (!boardId || isViewer) return;
+    if (!boardId || isViewer || !isDirtyRef.current) return;
 
     const timeout = setTimeout(() => {
       autosaveMutation.mutate({ boardId, elements, camera });
+
+      isDirtyRef.current = false;
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [boardId, elements, camera]);
+  }, [boardId, elements, camera, isDirtyRef.current]);
 }
-

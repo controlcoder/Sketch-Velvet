@@ -7,19 +7,31 @@ export default function Board() {
   const { id: boardId } = useParams();
 
   useEffect(() => {
-    socket.connect();
-
     const handleConnect = () => {
-      console.log("Connected:", socket.id);
-      socket.emit("join:board", { boardId });
+      socket.emit("join:board", { boardId }, (response: any) => {
+        if (!response.success) {
+          console.error("Failed to join board:", response.message);
+          return;
+        }
+
+        // console.log("Successfully joined board");
+        // console.log("Role:", response);
+      });
     };
+    // const handleConnectError = (error: Error) => {
+    //   console.error("Socket connection error:", error.message);
+    // };
     socket.on("connect", handleConnect);
+    // socket.on("connect_error", handleConnectError);
+
+    socket.connect();
 
     return () => {
       socket.off("connect", handleConnect);
+      // socket.off("connect_error", handleConnectError);
       socket.disconnect();
     };
-  }, []);
+  }, [boardId]);
 
   return (
     <>

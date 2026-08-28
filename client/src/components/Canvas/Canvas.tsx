@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 import type { Camera, CanvasElement, ResizeHandle, Tool } from "./types";
@@ -22,6 +22,7 @@ import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
 import { Navigate } from "react-router-dom";
 import { useAutosave } from "../../hooks/useAutosave";
 import { useSavedElements } from "../../hooks/useSavedElements";
+import { socket } from "../../api/socket";
 
 export default function Canvas({ boardId }: { boardId: string | undefined }) {
   if (!boardId) {
@@ -29,6 +30,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
   }
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const isDirtyRef = useRef(false);
 
   const [camera, setCamera] = useState<Camera>({
     x: 0,
@@ -67,7 +70,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     commitHistory,
   } = useHistory(setElements);
 
-  const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera);
+  const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera, isDirtyRef);
 
   const isPanning = useRef(false);
 
@@ -244,7 +247,6 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
       return;
     }
 
-    // Viewers: only allow panning (handled above), set default cursor
     if (isViewer) {
       e.currentTarget.style.cursor = "default";
       return;
@@ -335,10 +337,11 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
   const handleMouseUp = () => {
     isPanning.current = false;
 
-    // Viewers: only panning cleanup (above), skip all editing
     if (isViewer) return;
 
     if (resizingElementId) {
+      isDirtyRef.current = true;
+
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
       }
@@ -353,6 +356,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     }
 
     if (movingElementId) {
+      isDirtyRef.current = true;
+
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
       }
@@ -367,12 +372,20 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     if (drawingElement) {
       setElementsWithHistory((prev) => [...prev, drawingElement]);
 
+      isDirtyRef.current = true;
+
+      socket.emit("element:create", {
+        boardId,
+        element: drawingElement,
+      });
+
       setDrawingElement(null);
     }
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
+    isDirtyRef.current = true;
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
@@ -394,6 +407,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     setSelectedElementId,
     setElementsWithHistory,
     disabled: isViewer,
+    isDirtyRef,
   });
 
   useAutosave({
@@ -401,7 +415,25 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     elements,
     camera,
     isViewer,
+    isDirtyRef,
   });
+
+  useEffect(() => {
+    const handleElementCreate = ({
+      element,
+    }: {
+      element: CanvasElement;
+      userId: string;
+    }) => {
+      setElements((prev) => [...prev, element]);
+    };
+
+    socket.on("element:create", handleElementCreate);
+
+    return () => {
+      socket.off("element:create", handleElementCreate);
+    };
+  }, []);
 
   return (
     <>
