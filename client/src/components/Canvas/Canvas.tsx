@@ -281,7 +281,6 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
           if (isLineElement(element)) {
             const dx = x - dragOffset.current.x - element.start.x;
-
             const dy = y - dragOffset.current.y - element.start.y;
 
             return {
@@ -299,7 +298,6 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
           if (isPencilElement(element)) {
             const dx = x - dragOffset.current.x - element.points[0].x;
-
             const dy = y - dragOffset.current.y - element.points[0].y;
 
             return {
@@ -363,6 +361,17 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
+      }
+
+      const updatedElement = movedElementsRef.current?.find(
+        (element) => element.id === movingElementId,
+      );
+
+      if (updatedElement) {
+        socket.emit("element:update", {
+          boardId,
+          element: updatedElement,
+        });
       }
 
       dragStartElementsRef.current = null;
@@ -441,12 +450,27 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
       setElements((prev) => prev.filter((element) => element.id !== elementId));
     };
 
+    const handleElementUpdate = ({
+      element,
+    }: {
+      element: CanvasElement;
+      userId: string;
+    }) => {
+      setElements((prev) =>
+        prev.map((existingElement) =>
+          existingElement.id === element.id ? element : existingElement,
+        ),
+      );
+    };
+
     socket.on("element:create", handleElementCreate);
     socket.on("element:delete", handleElementDelete);
+    socket.on("element:update", handleElementUpdate);
 
     return () => {
       socket.off("element:create", handleElementCreate);
       socket.off("element:delete", handleElementDelete);
+      socket.off("element:update", handleElementUpdate);
     };
   }, []);
 

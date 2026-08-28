@@ -35,6 +35,12 @@ export function registerBoardSocket(io: Server) {
         .emit("element:delete", { elementId, userId: socket.data.userId });
     });
 
+    socket.on("element:update", ({ boardId, element }) => {
+      socket
+        .to(`board:${boardId}`)
+        .emit("element:update", { element, userId: socket.data.userId });
+    });
+
     // socket.on("disconnect", () => {
     //   console.log("Client disconnected:", socket.id, socket.data.userId);
     // });
