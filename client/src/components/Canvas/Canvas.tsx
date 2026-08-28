@@ -22,7 +22,7 @@ import { useDeleteShortcut } from "../../hooks/useDeleteShortcut";
 import { Navigate } from "react-router-dom";
 import { useAutosave } from "../../hooks/useAutosave";
 import { useSavedElements } from "../../hooks/useSavedElements";
-import { socket } from "../../api/socket";
+import { socket } from "../../config/socket";
 
 export default function Canvas({ boardId }: { boardId: string | undefined }) {
   if (!boardId) {
@@ -408,6 +408,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     setElementsWithHistory,
     disabled: isViewer,
     isDirtyRef,
+    boardId
   });
 
   useAutosave({
@@ -428,10 +429,21 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
       setElements((prev) => [...prev, element]);
     };
 
+    const handleElementDelete = ({
+      elementId,
+    }: {
+      elementId: string;
+      userId: string;
+    }) => {
+      setElements((prev) => prev.filter((element) => element.id !== elementId));
+    };
+
     socket.on("element:create", handleElementCreate);
+    socket.on("element:delete", handleElementDelete);
 
     return () => {
       socket.off("element:create", handleElementCreate);
+      socket.off("element:delete", handleElementDelete);
     };
   }, []);
 

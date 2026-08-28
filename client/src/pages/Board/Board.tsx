@@ -1,6 +1,6 @@
 import Canvas from "../../components/Canvas/Canvas";
 import { useEffect } from "react";
-import { socket } from "../../api/socket";
+import { socket } from "../../config/socket";
 import { useParams } from "react-router-dom";
 
 export default function Board() {
