@@ -70,7 +70,10 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     commitHistory,
   } = useHistory(setElements);
 
-  const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(setCamera, isDirtyRef);
+  const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(
+    setCamera,
+    isDirtyRef,
+  );
 
   const isPanning = useRef(false);
 
@@ -408,7 +411,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     setElementsWithHistory,
     disabled: isViewer,
     isDirtyRef,
-    boardId
+    boardId,
   });
 
   useAutosave({
@@ -475,6 +478,13 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
               stroke: strokeColor,
             };
             setElementsWithHistory((prev) => [...prev, textElement]);
+
+            isDirtyRef.current = true;
+
+            socket.emit("element:create", {
+              boardId,
+              element: textElement,
+            });
             setTool("select");
           }}
         />

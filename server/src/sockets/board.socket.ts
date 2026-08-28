@@ -23,6 +23,7 @@ export function registerBoardSocket(io: Server) {
     );
 
     socket.on("element:create", ({ boardId, element }) => {
+      console.log(element);
       socket
         .to(`board:${boardId}`)
         .emit("element:create", { element, userId: socket.data.userId });
