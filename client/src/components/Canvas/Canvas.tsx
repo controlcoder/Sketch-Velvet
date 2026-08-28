@@ -345,6 +345,17 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
+
+        const updatedElement = movedElementsRef.current.find(
+          (element) => element.id === resizingElementId,
+        );
+
+        if (updatedElement) {
+          socket.emit("element:update", {
+            boardId,
+            element: updatedElement,
+          });
+        }
       }
 
       resizeHandle.current = null;
@@ -357,21 +368,19 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     }
 
     if (movingElementId) {
-      isDirtyRef.current = true;
-
       if (dragStartElementsRef.current && movedElementsRef.current) {
         commitHistory(dragStartElementsRef.current, movedElementsRef.current);
-      }
 
-      const updatedElement = movedElementsRef.current?.find(
-        (element) => element.id === movingElementId,
-      );
+        const updatedElement = movedElementsRef.current.find(
+          (element) => element.id === movingElementId,
+        );
 
-      if (updatedElement) {
-        socket.emit("element:update", {
-          boardId,
-          element: updatedElement,
-        });
+        if (updatedElement) {
+          socket.emit("element:update", {
+            boardId,
+            element: updatedElement,
+          });
+        }
       }
 
       dragStartElementsRef.current = null;
