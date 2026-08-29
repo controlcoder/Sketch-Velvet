@@ -8,6 +8,8 @@ export function errorHandler(
   res: Response,
   next: NextFunction,
 ) {
+  console.error(error);
+
   if (error instanceof ZodError) {
     return res.status(400).json({
       success: false,
@@ -21,9 +23,7 @@ export function errorHandler(
       message: error.message,
     });
   }
-
-  // console.error(error);
-
+  
   return res.status(500).json({
     success: false,
     message: "Internal Server Error",

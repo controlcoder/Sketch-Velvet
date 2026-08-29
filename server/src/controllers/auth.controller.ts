@@ -10,7 +10,7 @@ export const signup = asyncHandler(async (req, res) => {
 
   res.cookie("token", result.token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
     secure: false,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -28,7 +28,7 @@ export const login = asyncHandler(async (req, res) => {
 
   res.cookie("token", result.token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
     secure: false,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
