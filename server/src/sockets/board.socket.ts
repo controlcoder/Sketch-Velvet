@@ -6,7 +6,7 @@ import { AppError } from "../utils/AppError";
 export function registerBoardSocket(io: Server) {
   io.on("connection", (socket) => {
     // console.log("Client connected:", socket.id, socket.data.userId);
-  
+
     socket.on(
       "join:board",
       socketHandler(async ({ boardId }: { boardId: string }) => {
@@ -16,6 +16,9 @@ export function registerBoardSocket(io: Server) {
           throw new AppError("You don't have access to this board", 403);
         }
         socket.join(`board:${boardId}`);
+
+        socket.data.boardId = boardId;
+
         return {
           role: member.role,
         };
@@ -23,7 +26,6 @@ export function registerBoardSocket(io: Server) {
     );
 
     socket.on("element:create", ({ boardId, element }) => {
-      console.log(element);
       socket
         .to(`board:${boardId}`)
         .emit("element:create", { element, userId: socket.data.userId });
@@ -39,6 +41,18 @@ export function registerBoardSocket(io: Server) {
       socket
         .to(`board:${boardId}`)
         .emit("element:update", { element, userId: socket.data.userId });
+    });
+
+    socket.on("cursor:move", ({ boardId, x, y }) => {
+      if (socket.data.boardId !== boardId) {
+        return;
+      }
+
+      socket.to(`board:${boardId}`).emit("cursor:move", {
+        userId: socket.data.userId,
+        x,
+        y,
+      });
     });
 
     // socket.on("disconnect", () => {

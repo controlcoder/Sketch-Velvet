@@ -23,11 +23,20 @@ import { Navigate } from "react-router-dom";
 import { useAutosave } from "../../hooks/useAutosave";
 import { useSavedElements } from "../../hooks/useSavedElements";
 import { socket } from "../../config/socket";
+import { useBoardSocket } from "../../hooks/useBoardSocket";
+
+export interface RemoteCursor {
+  userId: string;
+  x: number;
+  y: number;
+}
 
 export default function Canvas({ boardId }: { boardId: string | undefined }) {
   if (!boardId) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -128,7 +137,26 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
       selectedElementId || null,
       drawingElement,
     );
-  }, [camera, elements, drawingElement, selectedElementId]);
+
+    remoteCursors.forEach((cursor) => {
+      const screenX = cursor.x * camera.zoom + camera.x;
+      const screenY = cursor.y * camera.zoom + camera.y;
+
+      ctx.save();
+
+      ctx.beginPath();
+      ctx.moveTo(screenX, screenY);
+      ctx.lineTo(screenX + 12, screenY + 18);
+      ctx.lineTo(screenX + 5, screenY + 16);
+      ctx.lineTo(screenX + 2, screenY + 23);
+      ctx.closePath();
+
+      ctx.fillStyle = "black";
+      ctx.fill();
+
+      ctx.restore();
+    });
+  }, [camera, elements, drawingElement, selectedElementId, remoteCursors]);
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -231,9 +259,25 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     }
   };
 
+  const lastCursorEmit = useRef(0);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
+
+    const { x, y } = getCanvasCoordinates(e);
+
+    const now = Date.now();
+
+    if (now - lastCursorEmit.current >= 33) {
+      socket.emit("cursor:move", {
+        boardId,
+        x,
+        y,
+      });
+
+      lastCursorEmit.current = now;
+    }
 
     if (isPanning.current) {
       const dx = mouseX - lastMouse.current.x;
@@ -254,8 +298,6 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
       e.currentTarget.style.cursor = "default";
       return;
     }
-
-    const { x, y } = getCanvasCoordinates(e);
 
     if (resizingElementId) {
       setElements((prev) => {
@@ -440,48 +482,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     isDirtyRef,
   });
 
-  useEffect(() => {
-    const handleElementCreate = ({
-      element,
-    }: {
-      element: CanvasElement;
-      userId: string;
-    }) => {
-      setElements((prev) => [...prev, element]);
-    };
-
-    const handleElementDelete = ({
-      elementId,
-    }: {
-      elementId: string;
-      userId: string;
-    }) => {
-      setElements((prev) => prev.filter((element) => element.id !== elementId));
-    };
-
-    const handleElementUpdate = ({
-      element,
-    }: {
-      element: CanvasElement;
-      userId: string;
-    }) => {
-      setElements((prev) =>
-        prev.map((existingElement) =>
-          existingElement.id === element.id ? element : existingElement,
-        ),
-      );
-    };
-
-    socket.on("element:create", handleElementCreate);
-    socket.on("element:delete", handleElementDelete);
-    socket.on("element:update", handleElementUpdate);
-
-    return () => {
-      socket.off("element:create", handleElementCreate);
-      socket.off("element:delete", handleElementDelete);
-      socket.off("element:update", handleElementUpdate);
-    };
-  }, []);
+  useBoardSocket({ setElements, setRemoteCursors });
 
   return (
     <>
