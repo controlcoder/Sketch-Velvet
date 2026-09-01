@@ -6,6 +6,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { CanvasElement } from "../components/Canvas/types";
+import { getChangedElements } from "./historyChange";
 
 export function useHistory(
   setElements: Dispatch<SetStateAction<CanvasElement[]>>,
@@ -37,34 +38,48 @@ export function useHistory(
 
   const undo = useCallback(() => {
     const { past, present, future } = historyRef.current;
-    if (past.length === 0) return;
+
+    if (past.length === 0) return null;
+
+    const previous = past[past.length - 1];
+
+    const changes = getChangedElements(present, previous);
 
     historyRef.current = {
       past: past.slice(0, -1),
-      present: past[past.length - 1],
+      present: previous,
       future: [present, ...future],
     };
 
     setCanUndo(historyRef.current.past.length > 0);
     setCanRedo(historyRef.current.future.length > 0);
 
-    setElements(historyRef.current.present);
+    setElements(previous);
+
+    return changes;
   }, [setElements]);
 
   const redo = useCallback(() => {
     const { past, present, future } = historyRef.current;
-    if (future.length === 0) return;
+
+    if (future.length === 0) return null;
+
+    const next = future[0];
+
+    const changes = getChangedElements(present, next);
 
     historyRef.current = {
       past: [...past, present],
-      present: future[0],
+      present: next,
       future: future.slice(1),
     };
 
     setCanUndo(historyRef.current.past.length > 0);
     setCanRedo(historyRef.current.future.length > 0);
 
-    setElements(historyRef.current.present);
+    setElements(next);
+
+    return changes;
   }, [setElements]);
 
   const setElementsWithHistory = useCallback(

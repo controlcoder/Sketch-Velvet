@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { renderScene } from "./Renderer";
 import { panCamera, zoomCamera } from "./Camera";
 import type { Camera, CanvasElement, ResizeHandle, Tool } from "./types";
@@ -452,9 +452,18 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     setCamera((prev) => zoomCamera(prev, e.deltaY));
   };
 
-  useKeyboardShortcuts({
+  const { handleUndo, handleRedo } = useBoardSocket({
+    setElements,
+    setRemoteCursors,
     undo,
     redo,
+    boardId,
+    isDirtyRef,
+  });
+
+  useKeyboardShortcuts({
+    handleUndo,
+    handleRedo,
     setZoomIn,
     setZoomOut,
     resetZoom,
@@ -481,8 +490,6 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     isViewer,
     isDirtyRef,
   });
-
-  useBoardSocket({ setElements, setRemoteCursors });
 
   return (
     <>
@@ -543,8 +550,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
       {!isViewer && (
         <HistoryPanel
-          undo={undo}
-          redo={redo}
+          undo={handleUndo}
+          redo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
         />

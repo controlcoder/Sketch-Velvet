@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 
 interface Props {
-  undo: () => void;
-  redo: () => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
   setZoomIn: () => void;
   setZoomOut: () => void;
   resetZoom: () => void;
@@ -10,8 +10,8 @@ interface Props {
 }
 
 export function useKeyboardShortcuts({
-  undo,
-  redo,
+  handleUndo,
+  handleRedo,
   setZoomIn,
   setZoomOut,
   resetZoom,
@@ -25,13 +25,13 @@ export function useKeyboardShortcuts({
 
       if (!disabled && isModifier && e.key === "z") {
         e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
       }
 
       if (!disabled && isModifier && e.key === "y") {
         e.preventDefault();
-        redo();
+        handleRedo();
       }
 
       if (isModifier && (e.key === "+" || e.key === "=")) {
@@ -54,6 +54,6 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo, disabled]);
+  }, [handleUndo, handleRedo, disabled]);
 }
 
