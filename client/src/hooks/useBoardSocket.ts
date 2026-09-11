@@ -161,16 +161,24 @@ export function useBoardSocket({
       });
     };
 
+    const handleCursorRemove = ({ userId }: { userId: string }) => {
+      setRemoteCursors((prev) =>
+        prev.filter((cursor) => cursor.userId !== userId),
+      );
+    };
+
     socket.on("element:create", handleElementCreate);
     socket.on("element:delete", handleElementDelete);
     socket.on("element:update", handleElementUpdate);
     socket.on("cursor:move", handleCursorMove);
+    socket.on("cursor:remove", handleCursorRemove);
 
     return () => {
       socket.off("element:create", handleElementCreate);
       socket.off("element:delete", handleElementDelete);
       socket.off("element:update", handleElementUpdate);
       socket.off("cursor:move", handleCursorMove);
+      socket.off("cursor:remove", handleCursorRemove);
     };
   }, [setElements, setRemoteCursors]);
 

@@ -58,8 +58,15 @@ export function registerBoardSocket(io: Server) {
       });
     });
 
-    // socket.on("disconnect", () => {
-    //   console.log("Client disconnected:", socket.id, socket.data.userId);
-    // });
+    socket.on("disconnect", () => {
+      const userId = socket.data.userId;
+      const boardId = socket.data.boardId;
+
+      if (!boardId) return;
+
+      socket.to(`board:${boardId}`).emit("cursor:remove", {
+        userId,
+      });
+    });
   });
 }
