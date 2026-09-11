@@ -75,8 +75,9 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     redo,
     canUndo,
     canRedo,
-    setElementsWithHistory,
-    commitHistory,
+    recordCreate,
+    recordDelete,
+    recordUpdate,
   } = useHistory(setElements);
 
   const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(
@@ -383,16 +384,21 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     if (isViewer) return;
 
     if (resizingElementId) {
-      isDirtyRef.current = true;
-
       if (dragStartElementsRef.current && movedElementsRef.current) {
-        commitHistory(dragStartElementsRef.current, movedElementsRef.current);
-
+        const startElement = dragStartElementsRef.current.find(
+          (element) => element.id === resizingElementId,
+        );
         const updatedElement = movedElementsRef.current.find(
           (element) => element.id === resizingElementId,
         );
 
-        if (updatedElement) {
+        if (
+          startElement &&
+          updatedElement &&
+          JSON.stringify(startElement) !== JSON.stringify(updatedElement)
+        ) {
+          recordUpdate(startElement, updatedElement);
+          isDirtyRef.current = true;
           socket.emit("element:update", {
             boardId,
             element: updatedElement,
@@ -411,13 +417,20 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
 
     if (movingElementId) {
       if (dragStartElementsRef.current && movedElementsRef.current) {
-        commitHistory(dragStartElementsRef.current, movedElementsRef.current);
-
+        const startElement = dragStartElementsRef.current.find(
+          (element) => element.id === movingElementId,
+        );
         const updatedElement = movedElementsRef.current.find(
           (element) => element.id === movingElementId,
         );
 
-        if (updatedElement) {
+        if (
+          startElement &&
+          updatedElement &&
+          JSON.stringify(startElement) !== JSON.stringify(updatedElement)
+        ) {
+          recordUpdate(startElement, updatedElement);
+          isDirtyRef.current = true;
           socket.emit("element:update", {
             boardId,
             element: updatedElement,
@@ -433,7 +446,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     }
 
     if (drawingElement) {
-      setElementsWithHistory((prev) => [...prev, drawingElement]);
+      setElements((prev) => [...prev, drawingElement]);
+      recordCreate(drawingElement);
 
       isDirtyRef.current = true;
 
@@ -477,7 +491,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
   useDeleteShortcut({
     selectedElementId,
     setSelectedElementId,
-    setElementsWithHistory,
+    setElements,
+    recordDelete,
     disabled: isViewer,
     isDirtyRef,
     boardId,
@@ -518,7 +533,8 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
               fontSize: 20,
               stroke: strokeColor,
             };
-            setElementsWithHistory((prev) => [...prev, textElement]);
+            setElements((prev) => [...prev, textElement]);
+            recordCreate(textElement);
 
             isDirtyRef.current = true;
 

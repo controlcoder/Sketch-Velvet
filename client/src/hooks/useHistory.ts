@@ -6,128 +6,194 @@ import {
   type SetStateAction,
 } from "react";
 import type { CanvasElement } from "../components/Canvas/types";
-import { getChangedElements } from "./historyChange";
+import type { ElementChange } from "./historyChange";
+
+export type HistoryAction =
+  | {
+      type: "create";
+      element: CanvasElement;
+    }
+  | {
+      type: "delete";
+      element: CanvasElement;
+      index?: number;
+    }
+  | {
+      type: "update";
+      before: CanvasElement;
+      after: CanvasElement;
+    };
 
 export function useHistory(
   setElements: Dispatch<SetStateAction<CanvasElement[]>>,
 ) {
-  const historyRef = useRef<{
-    past: CanvasElement[][];
-    present: CanvasElement[];
-    future: CanvasElement[][];
-  }>({ past: [], present: [], future: [] });
+  const undoStackRef = useRef<HistoryAction[]>([]);
+  const redoStackRef = useRef<HistoryAction[]>([]);
 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  const updateFlags = useCallback(() => {
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(redoStackRef.current.length > 0);
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+  }, []);
+
   const loadHistory = useCallback(
     (elements: CanvasElement[]) => {
-      historyRef.current = {
-        past: [],
-        present: elements,
-        future: [],
-      };
-
-      setCanUndo(false);
-      setCanRedo(false);
-
+      clearHistory();
       setElements(elements);
     },
-    [setElements],
+    [clearHistory, setElements],
   );
 
-  const undo = useCallback(() => {
-    const { past, present, future } = historyRef.current;
+  const recordAction = useCallback(
+    (action: HistoryAction) => {
+      undoStackRef.current.push(action);
+      redoStackRef.current = [];
+      updateFlags();
+    },
+    [updateFlags],
+  );
 
-    if (past.length === 0) return null;
+  const recordCreate = useCallback(
+    (element: CanvasElement) => {
+      recordAction({ type: "create", element });
+    },
+    [recordAction],
+  );
 
-    const previous = past[past.length - 1];
+  const recordDelete = useCallback(
+    (element: CanvasElement, index?: number) => {
+      recordAction({ type: "delete", element, index });
+    },
+    [recordAction],
+  );
 
-    const changes = getChangedElements(present, previous);
+  const recordUpdate = useCallback(
+    (before: CanvasElement, after: CanvasElement) => {
+      if (JSON.stringify(before) === JSON.stringify(after)) return;
+      recordAction({ type: "update", before, after });
+    },
+    [recordAction],
+  );
 
-    historyRef.current = {
-      past: past.slice(0, -1),
-      present: previous,
-      future: [present, ...future],
-    };
+  const undo = useCallback((): ElementChange[] | null => {
+    if (undoStackRef.current.length === 0) return null;
 
-    setCanUndo(historyRef.current.past.length > 0);
-    setCanRedo(historyRef.current.future.length > 0);
+    const action = undoStackRef.current.pop()!;
+    redoStackRef.current.push(action);
+    updateFlags();
 
-    setElements(previous);
+    const changes: ElementChange[] = [];
 
-    return changes;
-  }, [setElements]);
-
-  const redo = useCallback(() => {
-    const { past, present, future } = historyRef.current;
-
-    if (future.length === 0) return null;
-
-    const next = future[0];
-
-    const changes = getChangedElements(present, next);
-
-    historyRef.current = {
-      past: [...past, present],
-      present: next,
-      future: future.slice(1),
-    };
-
-    setCanUndo(historyRef.current.past.length > 0);
-    setCanRedo(historyRef.current.future.length > 0);
-
-    setElements(next);
-
-    return changes;
-  }, [setElements]);
-
-  const setElementsWithHistory = useCallback(
-    (
-      updater: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[]),
-    ) => {
-      setElements((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
-
-        historyRef.current = {
-          past: [...historyRef.current.past, prev],
-          present: next,
-          future: [],
-        };
-
-        setCanUndo(historyRef.current.past.length > 0);
-        setCanRedo(false);
-
-        return next;
+    if (action.type === "create") {
+      setElements((prev) => prev.filter((el) => el.id !== action.element.id));
+      changes.push({
+        type: "delete",
+        elementId: action.element.id,
       });
-    },
-    [],
-  );
+    } else if (action.type === "delete") {
+      setElements((prev) => {
+        if (prev.some((el) => el.id === action.element.id)) return prev;
+        const next = [...prev];
+        if (
+          typeof action.index === "number" &&
+          action.index >= 0 &&
+          action.index <= prev.length
+        ) {
+          next.splice(action.index, 0, action.element);
+          return next;
+        }
+        return [...prev, action.element];
+      });
+      changes.push({
+        type: "create",
+        element: action.element,
+      });
+    } else if (action.type === "update") {
+      setElements((prev) => {
+        const exists = prev.some((el) => el.id === action.before.id);
+        if (exists) {
+          return prev.map((el) =>
+            el.id === action.before.id ? action.before : el,
+          );
+        }
+        return [...prev, action.before];
+      });
+      changes.push({
+        type: "update",
+        element: action.before,
+      });
+    }
 
-  const commitHistory = useCallback(
-    (previous: CanvasElement[], next: CanvasElement[]) => {
-      historyRef.current = {
-        past: [...historyRef.current.past, previous],
-        present: next,
-        future: [],
-      };
+    return changes;
+  }, [setElements, updateFlags]);
 
-      setCanUndo(historyRef.current.past.length > 0);
-      setCanRedo(false);
+  const redo = useCallback((): ElementChange[] | null => {
+    if (redoStackRef.current.length === 0) return null;
 
-      setElements(next);
-    },
-    [setElements],
-  );
+    const action = redoStackRef.current.pop()!;
+    undoStackRef.current.push(action);
+    updateFlags();
+
+    const changes: ElementChange[] = [];
+
+    if (action.type === "create") {
+      setElements((prev) => {
+        const exists = prev.some((el) => el.id === action.element.id);
+        if (exists) {
+          return prev.map((el) =>
+            el.id === action.element.id ? action.element : el,
+          );
+        }
+        return [...prev, action.element];
+      });
+      changes.push({
+        type: "create",
+        element: action.element,
+      });
+    } else if (action.type === "delete") {
+      setElements((prev) => prev.filter((el) => el.id !== action.element.id));
+      changes.push({
+        type: "delete",
+        elementId: action.element.id,
+      });
+    } else if (action.type === "update") {
+      setElements((prev) => {
+        const exists = prev.some((el) => el.id === action.after.id);
+        if (exists) {
+          return prev.map((el) =>
+            el.id === action.after.id ? action.after : el,
+          );
+        }
+        return [...prev, action.after];
+      });
+      changes.push({
+        type: "update",
+        element: action.after,
+      });
+    }
+
+    return changes;
+  }, [setElements, updateFlags]);
 
   return {
     canUndo,
     canRedo,
-    historyRef,
     undo,
     redo,
-    setElementsWithHistory,
-    commitHistory,
+    recordAction,
+    recordCreate,
+    recordDelete,
+    recordUpdate,
+    clearHistory,
     loadHistory,
   };
 }

@@ -95,7 +95,13 @@ export function useBoardSocket({
       element: CanvasElement;
       userId: string;
     }) => {
-      setElements((prev) => [...prev, element]);
+      setElements((prev) => {
+        const exists = prev.some((el) => el.id === element.id);
+        if (exists) {
+          return prev.map((el) => (el.id === element.id ? element : el));
+        }
+        return [...prev, element];
+      });
     };
 
     const handleElementDelete = ({
@@ -113,11 +119,17 @@ export function useBoardSocket({
       element: CanvasElement;
       userId: string;
     }) => {
-      setElements((prev) =>
-        prev.map((existingElement) =>
+      setElements((prev) => {
+        const exists = prev.some(
+          (existingElement) => existingElement.id === element.id,
+        );
+        if (!exists) {
+          return [...prev, element];
+        }
+        return prev.map((existingElement) =>
           existingElement.id === element.id ? element : existingElement,
-        ),
-      );
+        );
+      });
     };
 
     const handleCursorMove = ({

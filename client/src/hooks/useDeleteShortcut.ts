@@ -6,9 +6,8 @@ import { socket } from "../config/socket";
 interface UseDeleteShortcutProps {
   selectedElementId: string | null;
   setSelectedElementId: React.Dispatch<React.SetStateAction<string | null>>;
-  setElementsWithHistory: (
-    updater: CanvasElement[] | ((prev: CanvasElement[]) => CanvasElement[]),
-  ) => void;
+  setElements: React.Dispatch<React.SetStateAction<CanvasElement[]>>;
+  recordDelete: (element: CanvasElement, index?: number) => void;
   disabled?: boolean;
   isDirtyRef: RefObject<boolean>;
   boardId: string;
@@ -17,7 +16,8 @@ interface UseDeleteShortcutProps {
 export function useDeleteShortcut({
   selectedElementId,
   setSelectedElementId,
-  setElementsWithHistory,
+  setElements,
+  recordDelete,
   disabled,
   isDirtyRef,
   boardId,
@@ -37,7 +37,13 @@ export function useDeleteShortcut({
 
       e.preventDefault();
 
-      setElementsWithHistory((prev) => deleteElement(prev, selectedElementId));
+      setElements((prev) => {
+        const index = prev.findIndex((el) => el.id === selectedElementId);
+        if (index !== -1) {
+          recordDelete(prev[index], index);
+        }
+        return deleteElement(prev, selectedElementId);
+      });
 
       isDirtyRef.current = true;
 
@@ -57,7 +63,10 @@ export function useDeleteShortcut({
   }, [
     selectedElementId,
     setSelectedElementId,
-    setElementsWithHistory,
+    setElements,
+    recordDelete,
     disabled,
+    boardId,
+    isDirtyRef,
   ]);
 }
