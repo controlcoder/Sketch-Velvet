@@ -5,6 +5,7 @@ import {
   TextFieldsTwoTone,
   LineAxisSharp,
   Edit,
+  AutoFixNormalTwoTone
 } from "@mui/icons-material";
 import type { Tool } from "../Canvas/types";
 import type { OverridableComponent } from "@mui/material/OverridableComponent";
@@ -48,5 +49,10 @@ import type { SvgIconTypeMap } from "@mui/material";
       key: "pencil",
       title: "Pencil",
       icon: Edit,
+    },
+    {
+      key: "clear",
+      title: "Clear Board",
+      icon: AutoFixNormalTwoTone,
     },
   ];

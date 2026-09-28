@@ -29,21 +29,24 @@ export function registerBoardSocket(io: Server) {
       socket
         .to(`board:${boardId}`)
         .emit("element:create", { element, userId: socket.data.userId });
-      console.log("element created");
     });
 
     socket.on("element:delete", ({ boardId, elementId }) => {
       socket
         .to(`board:${boardId}`)
         .emit("element:delete", { elementId, userId: socket.data.userId });
-        console.log("element deleted");
     });
 
     socket.on("element:update", ({ boardId, element }) => {
       socket
         .to(`board:${boardId}`)
         .emit("element:update", { element, userId: socket.data.userId });
-      console.log("element updated");
+    });
+
+    socket.on("board:clear", ({ boardId }) => {
+      socket
+        .to(`board:${boardId}`)
+        .emit("board:clear", { userId: socket.data.userId });
     });
 
     socket.on("cursor:move", ({ boardId, x, y }) => {

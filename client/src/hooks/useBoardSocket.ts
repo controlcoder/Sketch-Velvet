@@ -132,6 +132,10 @@ export function useBoardSocket({
       });
     };
 
+    const handleBoardClear = ({}: { userId: string }) => {
+      setElements([]);
+    };
+
     const handleCursorMove = ({
       userId,
       x,
@@ -170,6 +174,7 @@ export function useBoardSocket({
     socket.on("element:create", handleElementCreate);
     socket.on("element:delete", handleElementDelete);
     socket.on("element:update", handleElementUpdate);
+    socket.on("board:clear", handleBoardClear);
     socket.on("cursor:move", handleCursorMove);
     socket.on("cursor:remove", handleCursorRemove);
 

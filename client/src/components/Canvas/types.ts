@@ -6,7 +6,8 @@ export type Tool =
   | "line"
   | "arrow"
   | "pencil"
-  | "text";
+  | "text"
+  | "clear";
 
 export interface Point {
   x: number;

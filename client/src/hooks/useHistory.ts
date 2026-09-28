@@ -22,6 +22,10 @@ export type HistoryAction =
       type: "update";
       before: CanvasElement;
       after: CanvasElement;
+    }
+  | {
+      type: "clear";
+      elements: CanvasElement[];
     };
 
 export function useHistory(
@@ -84,6 +88,14 @@ export function useHistory(
     [recordAction],
   );
 
+  const recordClear = useCallback(
+    (elements: CanvasElement[]) => {
+      if (elements.length === 0) return;
+      recordAction({ type: "clear", elements: [...elements] });
+    },
+    [recordAction],
+  );
+
   const undo = useCallback((): ElementChange[] | null => {
     if (undoStackRef.current.length === 0) return null;
 
@@ -131,6 +143,14 @@ export function useHistory(
         type: "update",
         element: action.before,
       });
+    } else if (action.type === "clear") {
+      setElements(() => [...action.elements]);
+      changes.push(
+        ...action.elements.map((element) => ({
+          type: "create" as const,
+          element,
+        })),
+      );
     }
 
     return changes;
@@ -179,6 +199,14 @@ export function useHistory(
         type: "update",
         element: action.after,
       });
+    } else if (action.type === "clear") {
+      setElements([]);
+      changes.push(
+        ...action.elements.map((element) => ({
+          type: "delete" as const,
+          elementId: element.id,
+        })),
+      );
     }
 
     return changes;
@@ -193,6 +221,7 @@ export function useHistory(
     recordCreate,
     recordDelete,
     recordUpdate,
+    recordClear,
     clearHistory,
     loadHistory,
   };

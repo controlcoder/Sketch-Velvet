@@ -78,6 +78,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     recordCreate,
     recordDelete,
     recordUpdate,
+    recordClear,
   } = useHistory(setElements);
 
   const { setZoomIn, setZoomOut, resetZoom } = useZoomControls(
@@ -460,6 +461,13 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
     }
   };
 
+  const handleClearBoard = () => {
+    recordClear(elements);
+    setElements([]);
+    isDirtyRef.current = true;
+    socket.emit("board:clear", { boardId });
+  };
+
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
     isDirtyRef.current = true;
@@ -514,6 +522,7 @@ export default function Canvas({ boardId }: { boardId: string | undefined }) {
           setTool={setTool}
           strokeColor={strokeColor}
           setStrokeColor={setStrokeColor}
+          handleClearBoard={handleClearBoard}
         />
       )}
 

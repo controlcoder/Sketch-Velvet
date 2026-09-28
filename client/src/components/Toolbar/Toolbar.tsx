@@ -8,6 +8,7 @@ interface ToolbarProps {
   setTool: React.Dispatch<React.SetStateAction<Tool>>;
   strokeColor: string;
   setStrokeColor: React.Dispatch<React.SetStateAction<string>>;
+  handleClearBoard: () => void;
 }
 
 export default function Toolbar({
@@ -15,6 +16,7 @@ export default function Toolbar({
   setTool,
   strokeColor,
   setStrokeColor,
+  handleClearBoard,
 }: ToolbarProps) {
   return (
     <>
@@ -38,6 +40,10 @@ export default function Toolbar({
               active={tool === item.key}
               onClick={() =>
                 setTool((prev) => {
+                  if (item.key === "clear") {
+                    handleClearBoard();
+                    return "select";
+                  }
                   return prev === item.key ? "select" : item.key;
                 })
               }
